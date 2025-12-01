@@ -53,7 +53,7 @@ async def start_db():
     # Ensure index for measurements to speed up measurement range queries
     try:
         from app.models.inventory import Product
-        coll = Product.get_motor_collection()
+        coll = Product.get_pymongo_collection()
         # compound index on measurements.label, measurements.unit, measurements.value
         await coll.create_index([
             ("measurements.label", 1),
