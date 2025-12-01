@@ -3,16 +3,19 @@
 .env.local
 .env.*.local
 
-# Dependencies
-node_modules/
-
-# Python
-__pycache__/
-*.py[cod]
+# Backend virtualenvs
+backend/venv/
 venv/
 env/
+__pycache__/
+*.py[cod]
+
+# Node / frontend
+node_modules/
+frontend/node_modules/
 
 # Build outputs
+frontend/dist/
 dist/
 build/
 *.egg-info/
@@ -20,21 +23,44 @@ build/
 # Logs
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# IDE
+# IDEs
 .vscode/
 .idea/
-*.swp
-*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Testing
+# Testing / Coverage
 .coverage
+.coverage.*
 .pytest_cache/
 htmlcov/
+coverage/
 
-# User data & local files
-*.local
+# Misc
+*.orig
+*.swp
+*.swo
+*.zip
+*.tar.gz
+*.rar
+
+# Databases
+*.sqlite3
+
+# Optional: local settings
+local.settings.json
+
+# Keep example env files tracked
+!backend/.env.example
+!frontend/.env.example
+
