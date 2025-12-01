@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import Modal from '../../common/Modal';
+import Modal from '../../Modal';
 import Button from '../../common/Button';
 import ProductSearchInput from '../../common/ProductSearchInput';
 import Input from '../../common/Input';
