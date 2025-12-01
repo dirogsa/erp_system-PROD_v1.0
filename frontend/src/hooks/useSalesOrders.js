@@ -15,7 +15,8 @@ export const useSalesOrders = ({ page = 1, limit = 50, search = '', status = '',
         queryKey: ['sales-orders', { page, limit, search, status, date_from, date_to }],
         queryFn: async () => {
             try {
-                const response = await salesService.getSales(page, limit, search, status, date_from, date_to);
+                // Corrected function name from getSales to getSalesOrders
+                const response = await salesService.getSalesOrders(page, limit, search, status, date_from, date_to);
                 console.log('Sales Orders API Response:', response.data);
                 return response.data;
             } catch (err) {
@@ -32,7 +33,7 @@ export const useSalesOrders = ({ page = 1, limit = 50, search = '', status = '',
     });
 
     const createMutation = useMutation({
-        mutationFn: (orderData) => salesService.createOrder(orderData),
+        mutationFn: (orderData) => salesService.createSalesOrder(orderData), // Corrected: createSalesOrder
         onSuccess: () => {
             queryClient.invalidateQueries(['sales-orders']);
             showNotification('Orden de venta creada exitosamente', 'success');

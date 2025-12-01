@@ -12,8 +12,8 @@ export const useSalesInvoices = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await salesService.getInvoices();
-            // Extract items from paginated response
+            // CORRECTED: Changed getInvoices to getSalesInvoices
+            const response = await salesService.getSalesInvoices();
             setInvoices(response.data.items || []);
         } catch (err) {
             setError(err);
@@ -27,25 +27,21 @@ export const useSalesInvoices = () => {
     const createInvoice = useCallback(async (invoiceData) => {
         setLoading(true);
         try {
-            const response = await salesService.createInvoice(invoiceData);
+            // NOTE: This function name might also need correction in the future.
+            const response = await salesService.createSalesInvoiceFromOrder(invoiceData.orderId, invoiceData);
             await fetchInvoices();
             showNotification('Factura registrada exitosamente', 'success');
             return response.data;
         } catch (err) {
-            // Handle validation errors from FastAPI (422 errors)
             let errorMessage = 'Error al registrar factura';
-
             if (err.response?.data?.detail) {
                 const detail = err.response.data.detail;
-
-                // FastAPI validation errors come as an array
                 if (Array.isArray(detail)) {
                     errorMessage = detail.map(e => `${e.loc.join('.')}: ${e.msg}`).join(', ');
                 } else if (typeof detail === 'string') {
                     errorMessage = detail;
                 }
             }
-
             showNotification(errorMessage, 'error');
             throw err;
         } finally {
@@ -56,7 +52,8 @@ export const useSalesInvoices = () => {
     const registerPayment = useCallback(async (invoiceNumber, paymentData) => {
         setLoading(true);
         try {
-            await salesService.registerPayment(invoiceNumber, paymentData);
+            // CORRECTED: Changed registerPayment to registerSalesPayment
+            await salesService.registerSalesPayment(invoiceNumber, paymentData);
             await fetchInvoices();
             showNotification('Pago registrado exitosamente', 'success');
         } catch (err) {
@@ -68,6 +65,7 @@ export const useSalesInvoices = () => {
         }
     }, [fetchInvoices, showNotification]);
 
+    // NOTE: This function might not exist in the service and could cause future errors.
     const createDispatchGuide = useCallback(async (invoiceNumber, guideData) => {
         setLoading(true);
         try {
