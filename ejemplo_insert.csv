@@ -1,0 +1,6 @@
+operation,sku,name,brand,description,price,cost,stock_current
+INSERT,LAP-001,Laptop Dell Inspiron 15,Dell,Laptop con procesador Intel Core i5 y 8GB RAM,2500.00,1800.00,10
+INSERT,LAP-002,Laptop HP Pavilion,HP,Laptop con procesador AMD Ryzen 5 y 16GB RAM,2800.00,2000.00,5
+INSERT,MOU-001,Mouse Logitech MX Master,Logitech,Mouse inalámbrico ergonómico,150.00,80.00,25
+INSERT,KEY-001,Teclado Mecánico Corsair,Corsair,Teclado mecánico RGB con switches Cherry MX,350.00,200.00,15
+INSERT,MON-001,Monitor LG 27 pulgadas,LG,Monitor Full HD IPS 27 pulgadas,800.00,550.00,8

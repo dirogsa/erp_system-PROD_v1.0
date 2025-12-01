@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+/* Base paper */
+.receipt {
+  box-sizing: border-box;
+    /* Fit inside A5 printable area: A5 width (148mm) minus 2*export margin (6mm) = 136mm */
+    max-width: 136mm;
+    /* Do not force full A5 height here; allow content to size naturally on screen.
+      Print rules below will constrain printing to the printable height. */
+    padding: 6mm; /* reduced padding to fit more rows */
+  background: #ffffff;
+  color: #111111;
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 11px; /* slightly smaller */
+  position: relative;
+}
+
+/* Use column flex so footer stays at the bottom without overlapping content */
+.receipt { display: flex; flex-direction: column; }
+.receipt-body { flex: 1 1 auto; }
+
+.receipt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8mm;
+}
+
+.receipt .company {
+  font-weight: 700;
+  font-size: 18px;
+  color: #111111;
+}
+.receipt .company-sub { color: #6b7280; font-size: 11px; }
+
+.receipt .meta { text-align: right; font-size: 11px; color: #111111; }
+.receipt .meta .label { color: #6b7280; font-size: 10px; }
+
+.receipt .logo { max-width: 100px; max-height: 48px; object-fit: contain; margin-right: 8px; }
+
+/* Header layout: left (company) grows, right (meta) has fixed width to avoid overflow */
+.receipt-header > div:first-child { flex: 1 1 auto; min-width: 0; }
+.receipt-header .meta { flex: 0 0 60mm; text-align: right; }
+.receipt-header .meta .label { display: block; }
+
+.receipt .section { margin-bottom: 6mm; }
+.receipt .section .title { font-weight: 600; margin-bottom: 4px; color: #111111; }
+
+.receipt .items {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6mm;
+}
+.receipt .items th,
+.receipt .items td { padding: 4px 6px; border-bottom: 1px solid #e5e7eb; line-height: 1.2; vertical-align: middle; }
+.receipt .items thead th { color: #6b7280; font-weight: 600; text-align: left; }
+.receipt .items tbody td { color: #111111; }
+
+/* Column helpers */
+.col-product { width: calc(100% - 78mm); }
+.col-qty { width: 18mm; text-align: center; white-space: nowrap; font-family: 'Courier New', monospace; }
+.col-unit { width: 30mm; text-align: right; font-family: 'Courier New', monospace; white-space: nowrap; }
+.col-subtotal { width: 30mm; text-align: right; font-family: 'Courier New', monospace; white-space: nowrap; }
+
+/* Ensure header and body use the same alignment */
+.receipt .items th.col-qty,
+.receipt .items td.col-qty { text-align: center; }
+.receipt .items th.col-unit,
+.receipt .items td.col-unit,
+.receipt .items th.col-subtotal,
+.receipt .items td.col-subtotal { text-align: right; }
+
+/* Reduce header sizes to save vertical space */
+.receipt .company { font-size: 15px; }
+.receipt .company-sub { font-size: 10px; }
+.receipt .meta { font-size: 10px; }
+
+/* Make totals slightly larger but compact */
+.receipt .totals .amount { font-size: 12px; }
+
+.receipt .text-right { text-align: right; }
+.receipt .text-center { text-align: center; }
+
+.receipt .totals { margin-top: 6mm; width: 100%; }
+.receipt .totals td { padding: 6px 4px; }
+.receipt .totals .label { color: #6b7280; }
+.receipt .totals .amount { font-weight: 700; color: #111111; }
+
+
+.receipt .note { margin-top: 6mm; font-size: 11px; color: #6b7280; }
+
+.receipt .footer { margin-top: 6mm; text-align: center; font-size: 10px; color: #6b7280; }
+
+.doc-badge {
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  color: #111111;
+}
+
+.muted { color: #6b7280; font-size: 11px; }
+
+/* Print helpers */
+@media print {
+  @page { size: A5 portrait; margin: 6mm; }
+  /* Limit receipt to printable area and reduce spacing for single-page output */
+  .receipt {
+    max-width: 136mm;
+    /* printable height = 210mm - 2*6mm = 198mm */
+    max-height: 198mm;
+    padding: 4mm;
+    font-size: 10px;
+    overflow: hidden; /* avoid overflow creating extra pages */
+  }
+  /* reduce logo and header spacing */
+  .receipt .logo { max-width: 80px; max-height: 40px; }
+  .receipt-header { gap: 6px; }
+  .receipt-header .meta { flex: 0 0 56mm; }
+  /* table density */
+  .receipt .items th, .receipt .items td { padding: 2px 4px; }
+  .receipt .totals td { padding: 3px 4px; }
+  /* Clamp notes to 3 lines for printing to avoid pushing to second page */
+  .note { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  /* Make only the receipt visible in print */
+  body * { visibility: hidden; }
+  .receipt, .receipt * { visibility: visible; }
+  .receipt { position: absolute; left: 0; top: 0; }
+}

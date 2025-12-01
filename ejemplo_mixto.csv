@@ -1,0 +1,5 @@
+operation,sku,name,brand,description,price,cost,stock_current
+INSERT,LAP-003,Laptop Lenovo ThinkPad,Lenovo,Laptop empresarial i7 16GB,3000.00,2200.00,5
+UPDATE,LAP-001,Laptop Dell Inspiron 15 Actualizado,,,2650.00,,
+UPDATE,MOU-001,,,Nueva descripción del mouse,,,
+DELETE,OLD-001,,,,,,

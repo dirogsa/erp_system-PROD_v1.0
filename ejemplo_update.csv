@@ -1,0 +1,4 @@
+operation,sku,name,brand,description,price,cost,stock_current
+UPDATE,LAP-001,Laptop Dell Inspiron 15 Plus,,,2600.00,,
+UPDATE,MOU-001,,,Mouse inalámbrico profesional,,,
+UPDATE,KEY-001,,,,,,20
