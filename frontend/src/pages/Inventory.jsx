@@ -5,6 +5,7 @@ import ProductsTable from '../components/features/inventory/ProductsTable';
 import ProductForm from '../components/features/inventory/ProductForm';
 import TransfersSection from '../components/features/inventory/TransfersSection';
 import LossesSection from '../components/features/inventory/LossesSection';
+import InventoryAdjustmentModal from '../components/features/inventory/InventoryAdjustmentModal'; // Importado
 import Pagination from '../components/common/Table/Pagination';
 import { useProducts } from '../hooks/useProducts';
 import { inventoryService } from '../services/api';
@@ -12,6 +13,7 @@ import { inventoryService } from '../services/api';
 const Inventory = () => {
     const [activeTab, setActiveTab] = useState('products');
     const [showProductModal, setShowProductModal] = useState(false);
+    const [showAdjustmentModal, setShowAdjustmentModal] = useState(false); // Nuevo estado
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [isViewMode, setIsViewMode] = useState(false);
 
@@ -26,6 +28,7 @@ const Inventory = () => {
         products,
         pagination,
         loading,
+        refetch,
         createProduct,
         updateProduct,
         deleteProduct
@@ -56,11 +59,6 @@ const Inventory = () => {
         setFilteredProducts(null);
     };
 
-    // Debug logging
-    console.log('Inventory Component - Loading:', loading);
-    console.log('Inventory Component - Products:', products);
-    console.log('Inventory Component - Pagination:', pagination);
-
     const handleCreate = async (data) => {
         try {
             await createProduct(data, data.initial_stock);
@@ -75,6 +73,11 @@ const Inventory = () => {
         } catch (error) { }
     };
 
+    const handleAdjustmentSuccess = () => {
+        setShowAdjustmentModal(false);
+        refetch(); // Refrescar los datos de la tabla
+    };
+
     return (
         <div style={{ padding: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -83,13 +86,18 @@ const Inventory = () => {
                     <p style={{ color: '#94a3b8' }}>Control de productos, transferencias y mermas</p>
                 </div>
                 {activeTab === 'products' && (
-                    <Button onClick={() => {
-                        setSelectedProduct(null);
-                        setIsViewMode(false);
-                        setShowProductModal(true);
-                    }}>
-                        + Nuevo Producto
-                    </Button>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <Button onClick={() => setShowAdjustmentModal(true)} variant="secondary">
+                            Ajuste de Inventario
+                        </Button>
+                        <Button onClick={() => {
+                            setSelectedProduct(null);
+                            setIsViewMode(false);
+                            setShowProductModal(true);
+                        }}>
+                            + Nuevo Producto
+                        </Button>
+                    </div>
                 )}
             </div>
 
@@ -211,7 +219,7 @@ const Inventory = () => {
 
             {/* Modal de Producto */}
             {showProductModal && (
-                <div style={{
+                 <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000,
                     display: 'flex', justifyContent: 'center', alignItems: 'center'
@@ -230,6 +238,13 @@ const Inventory = () => {
                     </div>
                 </div>
             )}
+            
+            {/* Modal de Ajuste de Inventario */}
+            <InventoryAdjustmentModal
+                isOpen={showAdjustmentModal}
+                onClose={() => setShowAdjustmentModal(false)}
+                onAdjustmentSuccess={handleAdjustmentSuccess}
+            />
         </div>
     );
 };

@@ -10,6 +10,14 @@ import io
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
 
+# Pydantic model for inventory adjustment request
+class InventoryAdjustmentRequest(BaseModel):
+    product_sku: str
+    quantity_adjusted: int
+    reason: str
+    responsible: Optional[str] = None
+
+
 from app.schemas.common import PaginatedResponse
 
 @router.get("/products", response_model=PaginatedResponse[Product])
@@ -82,7 +90,19 @@ async def delete_product(sku: str):
 async def get_warehouses():
     return await inventory_service.get_warehouses()
 
+
 # --- Feature Endpoints ---
+
+@router.post("/adjustments", response_model=Product)
+async def create_inventory_adjustment(request: InventoryAdjustmentRequest):
+    """Creates a new inventory adjustment."""
+    return await inventory_service.create_inventory_adjustment(
+        sku=request.product_sku,
+        quantity_adjusted=request.quantity_adjusted,
+        reason=request.reason,
+        responsible=request.responsible
+    )
+
 
 @router.post("/losses")
 async def register_loss(loss_data: LossRegistration):

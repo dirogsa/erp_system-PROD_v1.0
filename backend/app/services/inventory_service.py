@@ -294,3 +294,39 @@ async def register_movement(
     
     await product.save()
     return movement
+
+async def create_inventory_adjustment(sku: str, quantity_adjusted: int, reason: str, responsible: Optional[str] = None) -> Product:
+    """
+    Ajusta el stock de un producto por una cantidad específica (positiva o negativa)
+    y registra el movimiento para auditoría.
+    """
+    if quantity_adjusted == 0:
+        raise ValidationException("La cantidad a ajustar no puede ser cero.")
+
+    product = await get_product_by_sku(sku)
+
+    # Validar stock para ajustes negativos
+    if quantity_adjusted < 0 and product.stock_current < abs(quantity_adjusted):
+        raise InsufficientStockException(sku, product.stock_current, abs(quantity_adjusted))
+
+    # Determinar el tipo de movimiento para el registro de auditoría (IN/OUT)
+    # pero guardaremos el tipo general de "AJUSTE"
+    actual_type = MovementType.IN if quantity_adjusted > 0 else MovementType.OUT
+
+    # Crear el registro de movimiento para el Kardex
+    movement = StockMovement(
+        product_sku=sku,
+        quantity=abs(quantity_adjusted),
+        movement_type=MovementType.ADJUSTMENT,  # Usamos el tipo específico para identificarlo
+        notes=reason,
+        responsible=responsible,
+        unit_cost=product.cost,
+        reference_document=f"ADJUST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    )
+    await movement.insert()
+
+    # Actualizar el stock del producto
+    product.stock_current += quantity_adjusted
+    await product.save()
+
+    return product
