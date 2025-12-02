@@ -47,13 +47,13 @@ export const createSalesInvoice = (invoice) => api.post('/api/v1/sales/invoices'
 export const getCustomers = () => api.get('/api/v1/sales/customers');
 export const createCustomer = (customer) => api.post('/api/v1/sales/customers', customer);
 
+// --- Stock/Inventory ---
 export const getStockMovements = (productId) => api.get(`/api/v1/inventory/stock-movements/product/${productId}`);
 export const adjustInventory = (data) => api.post('/api/v1/inventory/stock-movements/adjust', data);
-
-// --- ¡FUNCIÓN AÑADIDA! ---
 export const getWarehouses = () => api.get('/api/v1/inventory/warehouses');
-
-// Asumo que también necesitarás una función para crear transferencias
 export const createTransfer = (transferData) => api.post('/api/v1/inventory/stock-movements/transfer', transferData);
+
+// --- ¡NUEVA FUNCIÓN AÑADIDA! ---
+export const createStockMovement = (movement) => api.post('/api/v1/inventory/stock-movements/', movement);
 
 export default api;
