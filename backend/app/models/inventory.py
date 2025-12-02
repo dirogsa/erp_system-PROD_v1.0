@@ -47,6 +47,7 @@ class Product(Document):
     sku: Indexed(str, unique=True)
     name: str
     brand: Optional[str] = None
+    image_url: Optional[str] = None
     category_id: Optional[str] = None
     description: Optional[str] = None
     price: float

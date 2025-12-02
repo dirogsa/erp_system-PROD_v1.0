@@ -11,6 +11,17 @@ const ProductsTable = ({
     onDelete
 }) => {
     const columns = [
+        {
+            label: 'Imagen',
+            key: 'image_url',
+            render: (product) => (
+                <img 
+                    src={product.image_url || 'https://via.placeholder.com/40'} 
+                    alt={product.name} 
+                    style={{ width: '40px', height: '40px', borderRadius: '0.25rem' }} 
+                />
+            )
+        },
         { label: 'SKU', key: 'sku' },
         { label: 'Nombre', key: 'name' },
         { label: 'Marca', key: 'brand' },
@@ -31,7 +42,7 @@ const ProductsTable = ({
             label: 'Acciones',
             key: 'actions',
             align: 'center',
-            render: (_, product) => (
+            render: (product) => (
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                     <Button
                         size="small"

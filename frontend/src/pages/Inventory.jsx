@@ -199,20 +199,34 @@ const Inventory = () => {
             {showProductModal && (
                  <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000,
-                    display: 'flex', justifyContent: 'center', alignItems: 'center'
+                    backgroundColor: 'rgba(0,0,0,0.7)', 
+                    zIndex: 1000,
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    padding: '2rem' // Added padding
                 }}>
-                    <div style={{ backgroundColor: '#0f172a', borderRadius: '0.5rem', width: '100%', maxWidth: '600px' }}>
-                        <div style={{ padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ 
+                        backgroundColor: '#0f172a', 
+                        borderRadius: '0.5rem', 
+                        width: '100%', 
+                        maxWidth: '800px', // Increased width for a better layout
+                        maxHeight: '90vh', // Set max height
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        <div style={{ padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                             <h2 style={{ color: 'white', margin: 0 }}>{selectedProduct ? 'Editar Producto' : 'Nuevo Producto'}</h2>
                             <button onClick={() => setShowProductModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
                         </div>
-                        <ProductForm
-                            initialData={selectedProduct}
-                            onSubmit={handleFormSubmit}
-                            onCancel={() => setShowProductModal(false)}
-                            loading={createMutation.isLoading || updateMutation.isLoading}
-                        />
+                        <div style={{ overflowY: 'auto'}}> {/* This makes the form content scrollable */}
+                            <ProductForm
+                                initialData={selectedProduct}
+                                onSubmit={handleFormSubmit}
+                                onCancel={() => setShowProductModal(false)}
+                                loading={createMutation.isLoading || updateMutation.isLoading}
+                            />
+                        </div>
                     </div>
                 </div>
             )}
