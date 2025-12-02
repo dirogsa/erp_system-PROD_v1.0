@@ -2,21 +2,21 @@ from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 from beanie import Document, Indexed
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 
 class Supplier(Document):
     name: Indexed(str, unique=True)
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
-    created_at: datetime = datetime.now()
+    created_at: datetime = Field(default_factory=datetime.now)
 
     class Settings:
         name = "suppliers"
 
 class OrderStatus(str, Enum):
     PENDING = "PENDING"
-    RECEIVED = "RECEIVED" # <-- Añadido
+    RECEIVED = "RECEIVED"
     INVOICED = "INVOICED"
     CANCELLED = "CANCELLED"
 
@@ -38,7 +38,7 @@ class OrderDetail(BaseModel):
 class Order(Document):
     order_number: Indexed(str, unique=True)
     supplier_id: str
-    date: datetime = datetime.now()
+    date: datetime = Field(default_factory=datetime.now)
     items: List[OrderDetail]
     status: OrderStatus = OrderStatus.PENDING
     total_amount: float = 0.0
@@ -65,7 +65,7 @@ class Invoice(Document):
     invoice_number: Indexed(str, unique=True)
     order_id: str
     supplier_id: str
-    invoice_date: datetime = datetime.now()
+    invoice_date: datetime = Field(default_factory=datetime.now)
     items: List[OrderDetail]
     total_amount: float = 0.0
     payment_status: PaymentStatus = PaymentStatus.PENDING

@@ -25,11 +25,14 @@ api.interceptors.response.use(response => response, error => {
 
 export const getProducts = (params) => api.get('/api/v1/inventory/products', { params });
 export const getProductById = (id) => api.get(`/api/v1/inventory/products/${id}`);
-export const createProduct = (product) => api.post('/api/v1/inventory/products', product);
-export const updateProduct = (id, product) => api.put(`/api/v1/inventory/products/${id}`, product);
-export const deleteProduct = (id) => api.delete(`/api/v1/inventory/products/${id}`);
-export const exportProducts = () => api.get('/api/v1/inventory/products/export/json'); // <-- AÑADIDO
-export const importProducts = (products) => api.post('/api/v1/inventory/products/import/json', products); // <-- AÑADIDO
+export const createProduct = (product) => api.post('/api/v1/inventory/products/', product);
+
+// --- RUTAS CORREGIDAS --- //
+export const updateProduct = (sku, product) => api.put(`/api/v1/inventory/products/${sku}`, product);
+export const deleteProduct = (sku) => api.delete(`/api/v1/inventory/products/${sku}`);
+
+export const exportProducts = () => api.get('/api/v1/inventory/products/export/json');
+export const importProducts = (products) => api.post('/api/v1/inventory/products/import/json', products);
 
 export const getSuppliers = () => api.get('/api/v1/purchasing/suppliers');
 export const createSupplier = (supplier) => api.post('/api/v1/purchasing/suppliers', supplier);

@@ -1,10 +1,18 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
+from fastapi.encoders import jsonable_encoder
 
 # Importa los modelos y el tipo de movimiento
 from app.models.inventory import Product, Category, Warehouse, StockMovement, MovementType
+from app.schemas.inventory_schemas import PaginatedProducts
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["Inventory"])
+
+# RUTA DE PRUEBA
+@router.get("/test-gemini/")
+async def test_gemini_route():
+    return {"message": "Gemini test route is working correctly!"}
+
 
 # --- Rutas para Productos (Products) ---
 @router.post("/products/", response_model=Product)
@@ -12,14 +20,31 @@ async def create_product(product: Product):
     await product.insert()
     return product
 
-@router.get("/products/", response_model=List[Product])
-async def list_products(sku: Optional[str] = None, name: Optional[str] = None):
+@router.get("/products/", response_model=PaginatedProducts)
+async def list_products(
+    sku: Optional[str] = None, 
+    name: Optional[str] = None,
+    page: int = 1,
+    limit: int = 10,
+):
     query = {}
     if sku:
         query["sku"] = {"$regex": sku, "$options": "i"}
     if name:
         query["name"] = {"$regex": name, "$options": "i"}
-    return await Product.find(query).to_list()
+
+    # Calcula el número de documentos a omitir
+    skip = (page - 1) * limit
+
+    # Realiza la consulta paginada
+    products_cursor = Product.find(query).skip(skip).limit(limit)
+    products = await products_cursor.to_list()
+
+    # Obtiene el total de documentos que coinciden con la consulta
+    total = await Product.find(query).count()
+
+    # Devuelve el resultado en el formato esperado
+    return {"items": jsonable_encoder(products), "total": total}
 
 @router.get("/products/{product_id}", response_model=Product)
 async def get_product(product_id: str):
@@ -28,23 +53,29 @@ async def get_product(product_id: str):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-@router.put("/products/{product_id}", response_model=Product)
-async def update_product(product_id: str, product: Product):
-    update_data = product.dict(exclude_unset=True, exclude={"id"})
+# --- RUTA CORREGIDA --- #
+@router.put("/products/{sku}", response_model=Product)
+async def update_product(sku: str, product_data: Product):
+    update_data = product_data.dict(exclude_unset=True, exclude={"id"})
     if not update_data:
         raise HTTPException(status_code=400, detail="No update data provided")
-    db_product = await Product.get(product_id)
+
+    db_product = await Product.find_one({"sku": sku})
     if not db_product:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(status_code=404, detail=f"Product with SKU {sku} not found")
+    
     await db_product.update({"$set": update_data})
-    updated_doc = await Product.get(product_id)
+    
+    # Devuelve el documento actualizado
+    updated_doc = await Product.find_one({"sku": sku})
     return updated_doc
 
-@router.delete("/products/{product_id}", status_code=204)
-async def delete_product(product_id: str):
-    product = await Product.get(product_id)
+# --- RUTA CORREGIDA --- #
+@router.delete("/products/{sku}", status_code=204)
+async def delete_product(sku: str):
+    product = await Product.find_one({"sku": sku})
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(status_code=404, detail=f"Product with SKU {sku} not found")
     await product.delete()
     return None
 

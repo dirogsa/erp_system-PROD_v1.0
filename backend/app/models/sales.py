@@ -2,7 +2,7 @@ from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 from beanie import Document, Indexed
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 
 class CustomerBranch(BaseModel):
     branch_name: str
@@ -19,7 +19,7 @@ class Customer(Document):
     phone: Optional[str] = None
     email: Optional[str] = None
     branches: List[CustomerBranch] = []
-    created_at: datetime = datetime.now()
+    created_at: datetime = Field(default_factory=datetime.now)
 
     class Settings:
         name = "customers"
@@ -34,7 +34,6 @@ class PaymentStatus(str, Enum):
     PARTIAL = "PARTIAL"
     PAID = "PAID"
 
-# Renombrado de OrderItem a SalesOrderDetail
 class SalesOrderDetail(BaseModel):
     product_sku: str
     quantity: int
@@ -48,7 +47,7 @@ class SalesOrderDetail(BaseModel):
 class SalesOrder(Document):
     order_number: Indexed(str, unique=True)
     customer_id: str
-    date: datetime = datetime.now()
+    date: datetime = Field(default_factory=datetime.now)
     items: List[SalesOrderDetail]
     status: OrderStatus = OrderStatus.PENDING
     total_amount: float = 0.0
@@ -63,7 +62,6 @@ class SalesOrder(Document):
     class Settings:
         name = "sales_orders"
 
-# Renombrado de Payment a SalesPayment
 class SalesPayment(BaseModel):
     amount: float
     date: datetime
@@ -78,7 +76,7 @@ class SalesInvoice(Document):
     invoice_number: Indexed(str, unique=True)
     order_id: str
     customer_id: str
-    invoice_date: datetime = datetime.now()
+    invoice_date: datetime = Field(default_factory=datetime.now)
     items: List[SalesOrderDetail]
     total_amount: float = 0.0
     delivery_branch_name: Optional[str] = None

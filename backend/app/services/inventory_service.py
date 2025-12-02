@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from fastapi.encoders import jsonable_encoder
 from app.models.inventory import Product, StockMovement, MovementType, Warehouse
 from app.exceptions.business_exceptions import NotFoundException, ValidationException, InsufficientStockException, DuplicateEntityException
 
@@ -25,8 +26,13 @@ async def get_products(
     total = await Product.find(query).count()
     items = await Product.find(query).skip(skip).limit(limit).to_list()
     
+    # ¡ESTA ES LA CORRECCIÓN!
+    # Usamos jsonable_encoder para asegurar que la serialización se haga
+    # correctamente, respetando los alias de los modelos (como id en vez de _id).
+    encoded_items = jsonable_encoder(items)
+    
     return PaginatedResponse(
-        items=items,
+        items=encoded_items, # Devolvemos los items ya codificados
         total=total,
         page=skip // limit + 1,
         pages=(total + limit - 1) // limit,

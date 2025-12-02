@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
-from app.models.inventory import MovementType
+from app.models.inventory import Product, MovementType
 
 class MeasurementFilter(BaseModel):
     label: str
@@ -22,3 +22,7 @@ class TransferRequest(BaseModel):
     target_warehouse_id: str
     items: List[TransferItem]
     notes: Optional[str] = None
+
+class PaginatedProducts(BaseModel):
+    items: List[Product]
+    total: int
