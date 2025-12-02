@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
+from datetime import datetime
 
 # Importa el nuevo servicio de numeración
 from app.services.document_number_service import get_next_document_number
@@ -19,26 +20,15 @@ async def create_customer(customer: Customer):
 async def list_customers():
     return await Customer.find_all().to_list()
 
-# --- ¡NUEVA RUTA AÑADIDA! ---
 @router.put("/customers/{customer_id}", response_model=Customer)
 async def update_customer(customer_id: str, customer: Customer):
-    """
-    Actualiza los datos de un cliente existente.
-    """
-    # Excluye campos no deseados y el ID para la actualización
     update_data = customer.dict(exclude_unset=True, exclude={"id"})
-
     if not update_data:
         raise HTTPException(status_code=400, detail="No update data provided")
-
-    # Busca el cliente y aplica la actualización
     db_customer = await Customer.get(customer_id)
     if not db_customer:
         raise HTTPException(status_code=404, detail="Customer not found")
-    
     await db_customer.update({"$set": update_data})
-    
-    # Retorna el documento actualizado
     updated_doc = await Customer.get(customer_id)
     return updated_doc
 
@@ -63,3 +53,22 @@ async def create_sales_invoice(invoice: SalesInvoice):
 @router.get("/sales-invoices/", response_model=List[SalesInvoice])
 async def list_sales_invoices():
     return await SalesInvoice.find_all().to_list()
+
+# --- ¡NUEVA RUTA AÑADIDA! ---
+@router.post("/invoices/{invoice_id}/pay", response_model=SalesInvoice)
+async def record_sales_payment(invoice_id: str):
+    """
+    Registra el pago de una factura de venta, actualizando su estado a 'paid'.
+    """
+    invoice = await SalesInvoice.get(invoice_id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Sales invoice not found")
+
+    if invoice.status == 'paid':
+        raise HTTPException(status_code=400, detail="Invoice is already paid")
+
+    invoice.status = 'paid'
+    invoice.payment_date = datetime.utcnow()
+    
+    await invoice.save()
+    return invoice

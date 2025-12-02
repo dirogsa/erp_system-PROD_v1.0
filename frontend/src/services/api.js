@@ -45,10 +45,11 @@ export const createSalesOrder = (order) => api.post('/api/v1/sales/orders', orde
 
 export const getSalesInvoices = () => api.get('/api/v1/sales/invoices');
 export const createSalesInvoice = (invoice) => api.post('/api/v1/sales/invoices', invoice);
+export const recordSalesPayment = (invoiceId) => api.post(`/api/v1/sales/invoices/${invoiceId}/pay`); // <-- AÑADIDO
 
 export const getCustomers = () => api.get('/api/v1/sales/customers');
 export const createCustomer = (customer) => api.post('/api/v1/sales/customers', customer);
-export const updateCustomer = (id, customer) => api.put(`/api/v1/sales/customers/${id}`, customer); // <-- AÑADIDO
+export const updateCustomer = (id, customer) => api.put(`/api/v1/sales/customers/${id}`, customer);
 
 // --- Stock/Inventory ---
 export const getStockMovements = (productId) => api.get(`/api/v1/inventory/stock-movements/product/${productId}`);
