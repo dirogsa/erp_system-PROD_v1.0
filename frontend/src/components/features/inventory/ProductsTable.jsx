@@ -1,6 +1,7 @@
 import React from 'react';
 import Table from '../../common/Table';
 import Button from '../../common/Button';
+import ImageWithFallback from '../../common/ImageWithFallback';
 import { formatCurrency } from '../../../utils/formatters';
 
 const ProductsTable = ({
@@ -15,10 +16,10 @@ const ProductsTable = ({
             label: 'Imagen',
             key: 'image_url',
             render: (product) => (
-                <img 
-                    src={product.image_url || 'https://via.placeholder.com/40'} 
+                <ImageWithFallback 
+                    src={product.image_url}
                     alt={product.name} 
-                    style={{ width: '40px', height: '40px', borderRadius: '0.25rem' }} 
+                    style={{ width: '40px', height: '40px', borderRadius: '0.25rem', objectFit: 'cover' }} 
                 />
             )
         },
@@ -75,7 +76,6 @@ const ProductsTable = ({
             columns={columns}
             data={products}
             loading={loading}
-            onRowClick={onView}
             emptyMessage="No hay productos registrados"
         />
     );

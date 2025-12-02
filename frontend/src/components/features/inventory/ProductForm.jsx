@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Input from '../../common/Input';
 import Button from '../../common/Button';
 import MeasurementInput from '../../common/MeasurementInput';
+import ImageWithFallback from '../../common/ImageWithFallback';
 import { useNotification } from '../../../hooks/useNotification';
 
 const FormSection = ({ title, children }) => (
@@ -111,7 +112,7 @@ const ProductForm = ({
                         />
                         {formData.image_url && (
                             <div style={{ textAlign: 'center', margin: '1rem 0' }}>
-                                <img 
+                                <ImageWithFallback 
                                     src={formData.image_url} 
                                     alt="Vista previa" 
                                     style={{ maxWidth: '150px', maxHeight: '150px', borderRadius: '0.5rem', objectFit: 'cover'}} 

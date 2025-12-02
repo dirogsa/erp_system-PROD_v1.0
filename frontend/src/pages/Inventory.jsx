@@ -4,6 +4,7 @@ import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import ProductsTable from '../components/features/inventory/ProductsTable';
 import ProductForm from '../components/features/inventory/ProductForm';
+import ProductDetailModal from '../components/features/inventory/ProductDetailModal'; // Import the new modal
 import TransfersSection from '../components/features/inventory/TransfersSection';
 import StockMovementsSection from '../components/features/inventory/StockMovementsSection';
 import Pagination from '../components/common/Table/Pagination';
@@ -14,9 +15,9 @@ import { useNotification } from '../hooks/useNotification';
 const Inventory = () => {
     const [activeTab, setActiveTab] = useState('products');
     const [showProductModal, setShowProductModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false); // State for the detail modal
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [viewingProductSku, setViewingProductSku] = useState(null); // State for product filter
-
+    
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
     const [search, setSearch] = useState('');
@@ -74,19 +75,19 @@ const Inventory = () => {
             deleteMutation.mutate(product.sku);
         }
     };
-
-    const handleViewMovements = (product) => {
-        setViewingProductSku(product.sku);
-        setActiveTab('movements');
+    
+    // Open the new detail modal
+    const handleViewDetails = (product) => {
+        setSelectedProduct(product);
+        setShowDetailModal(true);
     };
 
-    const handleTabChange = (tab) => {
-        setActiveTab(tab);
-        if (tab !== 'movements') {
-            setViewingProductSku(null); // Clear filter when leaving movements tab
-        }
+    const handleCloseModals = () => {
+        setSelectedProduct(null);
+        setShowProductModal(false);
+        setShowDetailModal(false);
     };
-
+    
     return (
         <div style={{ padding: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -108,7 +109,7 @@ const Inventory = () => {
 
             <div style={{ marginBottom: '2rem', borderBottom: '1px solid #334155' }}>
                 <button
-                    onClick={() => handleTabChange('products')}
+                    onClick={() => setActiveTab('products')}
                     style={{
                         padding: '1rem 2rem',
                         background: 'none',
@@ -122,7 +123,7 @@ const Inventory = () => {
                     📦 Productos
                 </button>
                 <button
-                    onClick={() => handleTabChange('movements')}
+                    onClick={() => setActiveTab('movements')}
                     style={{
                         padding: '1rem 2rem',
                         background: 'none',
@@ -136,7 +137,7 @@ const Inventory = () => {
                     ↕️ Ingreso/Salida
                 </button>
                 <button
-                    onClick={() => handleTabChange('transfers')}
+                    onClick={() => setActiveTab('transfers')}
                     style={{
                         padding: '1rem 2rem',
                         background: 'none',
@@ -167,7 +168,7 @@ const Inventory = () => {
                     <ProductsTable
                         products={products}
                         loading={isLoading}
-                        onView={handleViewMovements} // Pass the handler here
+                        onView={handleViewDetails} // Changed to open the detail modal
                         onEdit={(product) => {
                             setSelectedProduct(product);
                             setShowProductModal(true);
@@ -188,13 +189,15 @@ const Inventory = () => {
                 </>
             )}
 
-            {activeTab === 'movements' && (
-                <StockMovementsSection 
-                    productSku={viewingProductSku} 
-                    onClearFilter={() => setViewingProductSku(null)}
+            {activeTab === 'movements' && <StockMovementsSection />}
+            {activeTab === 'transfers' && <TransfersSection />}
+
+            {showDetailModal && selectedProduct && (
+                <ProductDetailModal
+                    product={selectedProduct}
+                    onClose={handleCloseModals}
                 />
             )}
-            {activeTab === 'transfers' && <TransfersSection />}
             
             {showProductModal && (
                  <div style={{
@@ -204,26 +207,26 @@ const Inventory = () => {
                     display: 'flex', 
                     justifyContent: 'center', 
                     alignItems: 'center',
-                    padding: '2rem' // Added padding
+                    padding: '2rem'
                 }}>
                     <div style={{ 
                         backgroundColor: '#0f172a', 
                         borderRadius: '0.5rem', 
                         width: '100%', 
-                        maxWidth: '800px', // Increased width for a better layout
-                        maxHeight: '90vh', // Set max height
+                        maxWidth: '800px',
+                        maxHeight: '90vh',
                         display: 'flex',
                         flexDirection: 'column'
                     }}>
                         <div style={{ padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                             <h2 style={{ color: 'white', margin: 0 }}>{selectedProduct ? 'Editar Producto' : 'Nuevo Producto'}</h2>
-                            <button onClick={() => setShowProductModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+                            <button onClick={handleCloseModals} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
                         </div>
-                        <div style={{ overflowY: 'auto'}}> {/* This makes the form content scrollable */}
+                        <div style={{ overflowY: 'auto'}}>
                             <ProductForm
                                 initialData={selectedProduct}
                                 onSubmit={handleFormSubmit}
-                                onCancel={() => setShowProductModal(false)}
+                                onCancel={handleCloseModals}
                                 loading={createMutation.isLoading || updateMutation.isLoading}
                             />
                         </div>
