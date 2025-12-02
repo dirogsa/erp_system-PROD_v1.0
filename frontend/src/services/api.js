@@ -58,7 +58,8 @@ export const createCustomer = (customer) => api.post('/api/v1/sales/customers', 
 export const updateCustomer = (id, customer) => api.put(`/api/v1/sales/customers/${id}`, customer);
 
 // --- Stock/Inventory ---
-export const getStockMovements = (productId) => api.get(`/api/v1/inventory/stock-movements/product/${productId}`);
+export const getStockMovements = (params) => api.get("/api/v1/inventory/stock-movements/", { params });
+export const getStockMovementsByProduct = (productSku) => api.get(`/api/v1/inventory/stock-movements/product/${productSku}`);
 export const adjustInventory = (data) => api.post('/api/v1/inventory/stock-movements/adjust', data);
 export const getWarehouses = () => api.get('/api/v1/inventory/warehouses');
 export const createTransfer = (transferData) => api.post('/api/v1/inventory/stock-movements/transfer', transferData);

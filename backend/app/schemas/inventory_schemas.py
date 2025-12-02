@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+
+from pydantic import BaseModel, validator
 from typing import List, Optional
-from app.models.inventory import Product, MovementType
+from app.models.inventory import Product, StockMovement
 
 class MeasurementFilter(BaseModel):
     label: str
@@ -25,4 +26,17 @@ class TransferRequest(BaseModel):
 
 class PaginatedProducts(BaseModel):
     items: List[Product]
+    total: int
+
+class ProductCreate(Product):
+    stock_initial: int = 0
+
+    @validator('price', 'cost')
+    def amounts_must_be_positive(cls, v):
+        if v is not None and v < 0:
+            raise ValueError('must be a non-negative number')
+        return v
+
+class PaginatedStockMovements(BaseModel):
+    items: List[StockMovement]
     total: int

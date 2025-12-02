@@ -19,13 +19,13 @@ const ProductsTable = ({
             label: 'Precio',
             key: 'price',
             align: 'right',
-            render: (val) => formatCurrency(val)
+            render: (row) => formatCurrency(row.price)
         },
         {
             label: 'Costo Prom.',
             key: 'cost',
             align: 'right',
-            render: (val) => formatCurrency(val)
+            render: (row) => formatCurrency(row.cost)
         },
         {
             label: 'Acciones',

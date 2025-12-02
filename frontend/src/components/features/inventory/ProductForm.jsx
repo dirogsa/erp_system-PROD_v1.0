@@ -19,7 +19,7 @@ const ProductForm = ({
         brand: '',
         price: 0,
         cost: 0,
-        initial_stock: 0,
+        stock_initial: 0,
         stock_current: 0,
         measurements: [],
         ...initialData
@@ -66,7 +66,7 @@ const ProductForm = ({
                     label="Precio de Lista (S/)"
                     type="number"
                     value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                     required
                     min="0"
                     step="0.01"
@@ -76,7 +76,7 @@ const ProductForm = ({
                     label="Costo Promedio (S/)"
                     type="number"
                     value={formData.cost}
-                    onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
                     required
                     min="0"
                     step="0.01"
@@ -90,7 +90,7 @@ const ProductForm = ({
                             label="Ajustar Stock Actual"
                             type="number"
                             value={formData.stock_current}
-                            onChange={(e) => setFormData({ ...formData, stock_current: parseInt(e.target.value) })}
+                            onChange={(e) => setFormData({ ...formData, stock_current: parseInt(e.target.value) || 0 })}
                             placeholder="0"
                         />
                         <small style={{ display: 'block', marginTop: '0.25rem', color: '#94a3b8' }}>
@@ -102,8 +102,8 @@ const ProductForm = ({
                         <Input
                             label="Stock Inicial (Opcional)"
                             type="number"
-                            value={formData.initial_stock}
-                            onChange={(e) => setFormData({ ...formData, initial_stock: parseInt(e.target.value) })}
+                            value={formData.stock_initial}
+                            onChange={(e) => setFormData({ ...formData, stock_initial: parseInt(e.target.value) || 0 })}
                             placeholder="0"
                         />
                         <small style={{ display: 'block', marginTop: '0.25rem', color: '#94a3b8' }}>

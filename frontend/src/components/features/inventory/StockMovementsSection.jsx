@@ -1,46 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStockMovements } from '../../../hooks/useStockMovements';
 import Table from '../../common/Table';
 import Pagination from '../../common/Table/Pagination';
 import Button from '../../common/Button';
 import { format } from 'date-fns';
-import StockMovementModal from './StockMovementModal'; // Importar el modal
+import StockMovementModal from './StockMovementModal';
 
-const StockMovementsSection = () => {
+const StockMovementsSection = ({ productSku, onClearFilter }) => {
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
-    const [filters, setFilters] = useState({}); // Para futuros filtros
+    const [filters, setFilters] = useState({});
     const [showModal, setShowModal] = useState(false);
 
-    const { movements, total, isLoading, error } = useStockMovements(page, limit, filters);
+    useEffect(() => {
+        const newFilters = productSku ? { product_sku: productSku } : {};
+        setFilters(newFilters);
+        setPage(1);
+    }, [productSku]);
+
+    const { movements, total, isLoading, error, refetch } = useStockMovements(page, limit, filters);
 
     const columns = [
-        { header: 'Producto (SKU)', accessor: 'product_sku' },
+        { label: 'Producto (SKU)', key: 'product_sku' },
         {
-            header: 'Tipo',
-            accessor: 'movement_type',
-            render: (item) => (
-                <span style={{ 
-                    color: item.movement_type.includes('OUT') || item.movement_type.includes('LOSS') ? '#f87171' : '#4ade80',
-                    fontWeight: 'bold'
-                }}>
-                    {item.movement_type}
-                </span>
-            ),
+            label: 'Tipo',
+            key: 'movement_type',
+            render: (type) => { // `type` is the cell value, as per the Table component contract
+                const typeString = String(type || '');
+                return (
+                    <span style={{ 
+                        color: typeString.includes('OUT') || typeString.includes('LOSS') ? '#f87171' : '#4ade80',
+                        fontWeight: 'bold'
+                    }}>
+                        {typeString}
+                    </span>
+                );
+            },
         },
-        { header: 'Cantidad', accessor: 'quantity' },
-        { header: 'Motivo', accessor: 'reference_document' },
+        { label: 'Cantidad', key: 'quantity' },
+        { label: 'Motivo', key: 'reference_document' },
         { 
-            header: 'Fecha', 
-            accessor: 'date',
-            render: (item) => format(new Date(item.date), 'dd/MM/yyyy HH:mm'),
+            label: 'Fecha', 
+            key: 'date',
+            render: (item) => { // `item` is the whole row object
+                const date = item.date;
+                return date ? format(new Date(date), 'dd/MM/yyyy HH:mm') : 'N/A';
+            },
         },
-        { header: 'Responsable', accessor: 'responsible' },
     ];
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                {productSku ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                         <h3 style={{color: 'white', margin: 0}}>Mostrando movimientos para: <span style={{color: '#3b82f6'}}>{productSku}</span></h3>
+                         <Button onClick={onClearFilter} variant="secondary">Limpiar Filtro</Button>
+                    </div>
+                ) : <div />}
                 <Button onClick={() => setShowModal(true)}>+ Nuevo Movimiento</Button>
             </div>
 
@@ -50,6 +67,7 @@ const StockMovementsSection = () => {
                 columns={columns}
                 data={movements}
                 loading={isLoading}
+                emptyMessage="No hay movimientos de stock registrados"
             />
 
             <Pagination
@@ -63,7 +81,10 @@ const StockMovementsSection = () => {
                 }}
             />
 
-            {showModal && <StockMovementModal onClose={() => setShowModal(false)} />}
+            {showModal && <StockMovementModal onClose={() => {
+                setShowModal(false);
+                refetch();
+            }} />}
         </div>
     );
 };

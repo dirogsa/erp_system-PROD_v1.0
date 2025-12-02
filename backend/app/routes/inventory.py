@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from fastapi.encoders import jsonable_encoder
+from datetime import datetime
 
 # Importa los modelos y el tipo de movimiento
 from app.models.inventory import Product, Category, Warehouse, StockMovement, MovementType
-from app.schemas.inventory_schemas import PaginatedProducts
+from app.schemas.inventory_schemas import PaginatedProducts, ProductCreate, PaginatedStockMovements
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["Inventory"])
 
@@ -16,8 +17,29 @@ async def test_gemini_route():
 
 # --- Rutas para Productos (Products) ---
 @router.post("/products/", response_model=Product)
-async def create_product(product: Product):
+async def create_product(product_data: ProductCreate):
+    # Crea una instancia del producto, pero sin guardarla aún
+    product = Product(**product_data.dict(exclude={"stock_initial"}))
+
+    # Asigna el stock inicial al stock current
+    product.stock_current = product_data.stock_initial
+
+    # Guarda el producto en la base de datos
     await product.insert()
+
+    # Si hay un stock inicial, crea el movimiento de inventario correspondiente
+    if product_data.stock_initial > 0:
+        movement = StockMovement(
+            product_sku=product.sku,
+            quantity=product_data.stock_initial,
+            movement_type=MovementType.ADJUSTMENT,
+            notes="Stock inicial",
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            reference_document="N/A"
+        )
+        await movement.insert()
+
     return product
 
 @router.get("/products/", response_model=PaginatedProducts)
@@ -128,9 +150,25 @@ async def create_stock_movement(movement: StockMovement):
     await product.save()
     return movement
 
-@router.get("/stock-movements/", response_model=List[StockMovement])
-async def list_stock_movements(product_sku: Optional[str] = None):
+@router.get("/stock-movements/product/{product_sku}", response_model=List[StockMovement])
+async def list_stock_movements_by_product(product_sku: str):
+    movements = await StockMovement.find({"product_sku": product_sku}).to_list()
+    return jsonable_encoder(movements)
+
+@router.get("/stock-movements/", response_model=PaginatedStockMovements)
+async def list_stock_movements(
+    product_sku: Optional[str] = None,
+    page: int = 1,
+    limit: int = 10
+):
     query = {}
     if product_sku:
-        query["product_sku"] = product_sku
-    return await StockMovement.find(query).to_list()
+        query["product_sku"] = {"$regex": product_sku, "$options": "i"}
+
+    skip = (page - 1) * limit
+    movements_cursor = StockMovement.find(query).skip(skip).limit(limit)
+    movements = await movements_cursor.to_list()
+    
+    total = await StockMovement.find(query).count()
+    
+    return {"items": jsonable_encoder(movements), "total": total}

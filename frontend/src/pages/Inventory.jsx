@@ -5,7 +5,7 @@ import Input from '../components/common/Input';
 import ProductsTable from '../components/features/inventory/ProductsTable';
 import ProductForm from '../components/features/inventory/ProductForm';
 import TransfersSection from '../components/features/inventory/TransfersSection';
-import StockMovementsSection from '../components/features/inventory/StockMovementsSection'; // Importado
+import StockMovementsSection from '../components/features/inventory/StockMovementsSection';
 import Pagination from '../components/common/Table/Pagination';
 import { useProducts } from '../hooks/useProducts';
 import { createProduct, updateProduct, deleteProduct } from '../services/api';
@@ -15,7 +15,8 @@ const Inventory = () => {
     const [activeTab, setActiveTab] = useState('products');
     const [showProductModal, setShowProductModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
-    
+    const [viewingProductSku, setViewingProductSku] = useState(null); // State for product filter
+
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
     const [search, setSearch] = useState('');
@@ -74,8 +75,16 @@ const Inventory = () => {
         }
     };
 
-    const handlePageChange = (newPage) => {
-        setPage(newPage);
+    const handleViewMovements = (product) => {
+        setViewingProductSku(product.sku);
+        setActiveTab('movements');
+    };
+
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        if (tab !== 'movements') {
+            setViewingProductSku(null); // Clear filter when leaving movements tab
+        }
     };
 
     return (
@@ -99,7 +108,7 @@ const Inventory = () => {
 
             <div style={{ marginBottom: '2rem', borderBottom: '1px solid #334155' }}>
                 <button
-                    onClick={() => setActiveTab('products')}
+                    onClick={() => handleTabChange('products')}
                     style={{
                         padding: '1rem 2rem',
                         background: 'none',
@@ -113,7 +122,7 @@ const Inventory = () => {
                     📦 Productos
                 </button>
                 <button
-                    onClick={() => setActiveTab('movements')}
+                    onClick={() => handleTabChange('movements')}
                     style={{
                         padding: '1rem 2rem',
                         background: 'none',
@@ -127,7 +136,7 @@ const Inventory = () => {
                     ↕️ Ingreso/Salida
                 </button>
                 <button
-                    onClick={() => setActiveTab('transfers')}
+                    onClick={() => handleTabChange('transfers')}
                     style={{
                         padding: '1rem 2rem',
                         background: 'none',
@@ -158,6 +167,7 @@ const Inventory = () => {
                     <ProductsTable
                         products={products}
                         loading={isLoading}
+                        onView={handleViewMovements} // Pass the handler here
                         onEdit={(product) => {
                             setSelectedProduct(product);
                             setShowProductModal(true);
@@ -168,7 +178,7 @@ const Inventory = () => {
                     <Pagination
                         current={page}
                         total={total}
-                        onChange={handlePageChange}
+                        onChange={setPage}
                         pageSize={limit}
                         onPageSizeChange={(newSize) => {
                             setLimit(newSize);
@@ -178,7 +188,12 @@ const Inventory = () => {
                 </>
             )}
 
-            {activeTab === 'movements' && <StockMovementsSection />}
+            {activeTab === 'movements' && (
+                <StockMovementsSection 
+                    productSku={viewingProductSku} 
+                    onClearFilter={() => setViewingProductSku(null)}
+                />
+            )}
             {activeTab === 'transfers' && <TransfersSection />}
             
             {showProductModal && (
