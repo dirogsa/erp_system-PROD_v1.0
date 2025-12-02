@@ -8,7 +8,8 @@ const PurchaseOrdersTable = ({
     orders = [],
     loading = false,
     onView,
-    onCreateInvoice
+    onCreateInvoice,
+    onReceive // <-- Añadido
 }) => {
     const columns = [
         { label: 'N° Orden', key: 'order_number' },
@@ -44,13 +45,22 @@ const PurchaseOrdersTable = ({
                         Ver
                     </Button>
                     {order.status === 'PENDING' && (
-                        <Button
-                            size="small"
-                            variant="success"
-                            onClick={(e) => { e.stopPropagation(); onCreateInvoice(order); }}
-                        >
-                            Facturar
-                        </Button>
+                        <>
+                            <Button
+                                size="small"
+                                variant="primary" // Cambiado para diferenciar
+                                onClick={(e) => { e.stopPropagation(); onReceive(order); }}
+                            >
+                                Recibir
+                            </Button>
+                            <Button
+                                size="small"
+                                variant="success"
+                                onClick={(e) => { e.stopPropagation(); onCreateInvoice(order); }}
+                            >
+                                Facturar
+                            </Button>
+                        </>
                     )}
                 </div>
             )

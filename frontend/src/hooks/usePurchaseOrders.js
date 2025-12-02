@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { purchasingService } from '../services/api';
+// Se importan las funciones correctas
+import { getPurchaseOrders, createPurchaseOrder } from '../services/api';
 import { useNotification } from './useNotification';
 
 export const usePurchaseOrders = ({ page = 1, limit = 50, search = '', status = '', date_from = '', date_to = '' } = {}) => {
@@ -15,7 +16,8 @@ export const usePurchaseOrders = ({ page = 1, limit = 50, search = '', status = 
         queryKey: ['purchase-orders', { page, limit, search, status, date_from, date_to }],
         queryFn: async () => {
             try {
-                const response = await purchasingService.getOrders(page, limit, search, status, date_from, date_to);
+                // Se usa la función correcta
+                const response = await getPurchaseOrders({ page, limit, search, status, date_from, date_to });
                 console.log('Purchase Orders API Response:', response.data);
                 return response.data;
             } catch (err) {
@@ -32,7 +34,8 @@ export const usePurchaseOrders = ({ page = 1, limit = 50, search = '', status = 
     });
 
     const createMutation = useMutation({
-        mutationFn: (orderData) => purchasingService.createOrder(orderData),
+        // Se usa la función correcta
+        mutationFn: (orderData) => createPurchaseOrder(orderData),
         onSuccess: () => {
             queryClient.invalidateQueries(['purchase-orders']);
             showNotification('Orden de compra creada exitosamente', 'success');

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { inventoryService } from '../services/api';
+// Se importan las funciones específicas en lugar del objeto inexistente
+import { getWarehouses, createTransfer } from '../services/api';
 import { useNotification } from './useNotification';
 
 export const useTransfers = () => {
@@ -11,19 +12,20 @@ export const useTransfers = () => {
 
     const fetchWarehouses = useCallback(async () => {
         try {
-            const response = await inventoryService.getWarehouses();
+            // Se llama a la función directamente
+            const response = await getWarehouses();
             setWarehouses(response.data);
         } catch (err) {
             console.error('Error fetching warehouses:', err);
         }
     }, []);
 
-    const createTransfer = useCallback(async (transferData) => {
+    const createNewTransfer = useCallback(async (transferData) => {
         setLoading(true);
         try {
-            const response = await inventoryService.registerTransfer(transferData);
+            // Se llama a la función correcta 'createTransfer'
+            const response = await createTransfer(transferData);
 
-            // Add to local history (simplified, ideally fetch from backend if endpoint exists)
             const newTransfer = {
                 date: new Date().toLocaleString(),
                 guide: response.data.guide_number,
@@ -54,6 +56,6 @@ export const useTransfers = () => {
         warehouses,
         loading,
         error,
-        createTransfer
+        createTransfer: createNewTransfer // Se exporta la función con el nombre esperado
     };
 };

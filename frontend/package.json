@@ -11,8 +11,11 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.11",
+    "@types/lodash.debounce": "^4.0.9",
     "axios": "^1.13.2",
+    "date-fns": "^4.1.0",
     "html2pdf.js": "^0.10.1",
+    "lodash.debounce": "^4.0.8",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6"

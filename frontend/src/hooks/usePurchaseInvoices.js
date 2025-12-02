@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { purchasingService } from '../services/api';
+// Se importan las funciones correctas
+import { getPurchaseInvoices, createPurchaseInvoice, recordPurchasePayment } from '../services/api';
 import { useNotification } from './useNotification';
 
 export const usePurchaseInvoices = () => {
@@ -12,8 +13,8 @@ export const usePurchaseInvoices = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await purchasingService.getInvoices();
-            // Extract items from paginated response
+            // Se usa la función correcta
+            const response = await getPurchaseInvoices();
             setInvoices(response.data.items || []);
         } catch (err) {
             setError(err);
@@ -27,7 +28,8 @@ export const usePurchaseInvoices = () => {
     const createInvoice = useCallback(async (invoiceData) => {
         setLoading(true);
         try {
-            const response = await purchasingService.createInvoice(invoiceData);
+            // Se usa la función correcta
+            const response = await createPurchaseInvoice(invoiceData);
             await fetchInvoices();
             showNotification('Factura de compra registrada exitosamente', 'success');
             return response.data;
@@ -40,10 +42,11 @@ export const usePurchaseInvoices = () => {
         }
     }, [fetchInvoices, showNotification]);
 
-    const registerPayment = useCallback(async (invoiceNumber, paymentData) => {
+    const registerPayment = useCallback(async (invoiceId, paymentData) => {
         setLoading(true);
         try {
-            await purchasingService.registerPayment(invoiceNumber, paymentData);
+            // Se usa la función correcta
+            await recordPurchasePayment(invoiceId, paymentData);
             await fetchInvoices();
             showNotification('Pago registrado exitosamente', 'success');
         } catch (err) {
@@ -55,20 +58,7 @@ export const usePurchaseInvoices = () => {
         }
     }, [fetchInvoices, showNotification]);
 
-    const registerReception = useCallback(async (invoiceNumber, receptionData) => {
-        setLoading(true);
-        try {
-            await purchasingService.registerReception(invoiceNumber, receptionData);
-            await fetchInvoices();
-            showNotification('Recepción de mercadería registrada exitosamente', 'success');
-        } catch (err) {
-            const errorMessage = err.response?.data?.detail || 'Error al registrar recepción';
-            showNotification(errorMessage, 'error');
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [fetchInvoices, showNotification]);
+    // NOTA: La función `registerReception` no existe en el api.js actual.
 
     useEffect(() => {
         fetchInvoices();
@@ -81,6 +71,5 @@ export const usePurchaseInvoices = () => {
         fetchInvoices,
         createInvoice,
         registerPayment,
-        registerReception
     };
 };

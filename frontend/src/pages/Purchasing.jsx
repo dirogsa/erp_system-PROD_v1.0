@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { receivePurchaseOrder } from '../services/api'; // Importar la función
+import { useNotification } from '../hooks/useNotification'; // Importar notificación
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import PurchaseOrdersTable from '../components/features/purchasing/PurchaseOrdersTable';
@@ -13,13 +16,13 @@ import { usePurchaseInvoices } from '../hooks/usePurchaseInvoices';
 
 const Purchasing = () => {
     const [activeTab, setActiveTab] = useState('orders');
+    const queryClient = useQueryClient(); // Para invalidar queries
+    const { showNotification } = useNotification();
 
-    // Pagination & Search State
+    // State
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
     const [search, setSearch] = useState('');
-
-    // Modals state
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -27,49 +30,49 @@ const Purchasing = () => {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showReceptionModal, setShowReceptionModal] = useState(false);
 
-    // Hooks
-    const {
-        orders,
-        pagination,
-        loading: ordersLoading,
-        createOrder
-    } = usePurchaseOrders({ page, limit, search });
+    // Hooks & Mutations
+    const { orders, pagination, loading: ordersLoading } = usePurchaseOrders({ page, limit, search });
+    const { invoices, loading: invoicesLoading, createInvoice, registerPayment, registerReception } = usePurchaseInvoices();
 
-    const {
-        invoices,
-        loading: invoicesLoading,
-        createInvoice,
-        registerPayment,
-        registerReception
-    } = usePurchaseInvoices();
+    const receiveOrderMutation = useMutation({
+        mutationFn: receivePurchaseOrder,
+        onSuccess: () => {
+            showNotification('¡Mercancía recibida! El stock ha sido actualizado.', 'success');
+            queryClient.invalidateQueries(['purchaseOrders']);
+            queryClient.invalidateQueries(['products']); // Clave para actualizar el stock visible en Inventario
+        },
+        onError: (err) => {
+            showNotification(err.response?.data?.detail || 'Error al recibir la mercancía', 'error');
+        }
+    });
 
     // Handlers
+    const handleReceiveOrder = (order) => {
+        if (window.confirm(`¿Confirma la recepción de todos los productos para la orden ${order.order_number}?`)) {
+            receiveOrderMutation.mutate(order.id);
+        }
+    };
+
     const handleCreateInvoice = async (invoiceData) => {
         try {
             await createInvoice(invoiceData);
             setShowInvoiceModal(false);
             setActiveTab('invoices');
-        } catch (error) {
-            // Error handled by hook
-        }
+        } catch (error) { /* Error handled by hook */ }
     };
 
     const handleRegisterPayment = async (paymentData) => {
         try {
             await registerPayment(selectedInvoice.invoice_number, paymentData);
             setShowPaymentModal(false);
-        } catch (error) {
-            // Error handled by hook
-        }
+        } catch (error) { /* Error handled by hook */ }
     };
 
     const handleReception = async (receptionData) => {
         try {
             await registerReception(selectedInvoice.invoice_number, receptionData);
             setShowReceptionModal(false);
-        } catch (error) {
-            // Error handled by hook
-        }
+        } catch (error) { /* Error handled by hook */ }
     };
 
     return (
@@ -79,23 +82,18 @@ const Purchasing = () => {
                     <h1 style={{ color: 'white', marginBottom: '0.5rem' }}>Compras</h1>
                     <p style={{ color: '#94a3b8' }}>Gestión de órdenes de compra y facturas de proveedores</p>
                 </div>
-                {/* TODO: Implementar creación de orden de compra */}
                 <Button onClick={() => showNotification('Próximamente: Crear Orden de Compra', 'info')}>
                     + Nueva Orden
                 </Button>
             </div>
 
             <div style={{ marginBottom: '2rem', borderBottom: '1px solid #334155' }}>
-                <button
+                 <button
                     onClick={() => setActiveTab('orders')}
                     style={{
-                        padding: '1rem 2rem',
-                        background: 'none',
-                        border: 'none',
+                        padding: '1rem 2rem', background: 'none', border: 'none',
                         borderBottom: activeTab === 'orders' ? '2px solid #3b82f6' : 'none',
-                        color: activeTab === 'orders' ? '#3b82f6' : '#94a3b8',
-                        cursor: 'pointer',
-                        fontWeight: '500'
+                        color: activeTab === 'orders' ? '#3b82f6' : '#94a3b8', cursor: 'pointer', fontWeight: '500'
                     }}
                 >
                     Órdenes de Compra
@@ -103,13 +101,9 @@ const Purchasing = () => {
                 <button
                     onClick={() => setActiveTab('invoices')}
                     style={{
-                        padding: '1rem 2rem',
-                        background: 'none',
-                        border: 'none',
+                        padding: '1rem 2rem', background: 'none', border: 'none',
                         borderBottom: activeTab === 'invoices' ? '2px solid #3b82f6' : 'none',
-                        color: activeTab === 'invoices' ? '#3b82f6' : '#94a3b8',
-                        cursor: 'pointer',
-                        fontWeight: '500'
+                        color: activeTab === 'invoices' ? '#3b82f6' : '#94a3b8', cursor: 'pointer', fontWeight: '500'
                     }}
                 >
                     Facturas de Proveedores
@@ -119,87 +113,32 @@ const Purchasing = () => {
             {activeTab === 'orders' ? (
                 <>
                     <div style={{ maxWidth: '400px', marginBottom: '1rem' }}>
-                        <Input
-                            placeholder="Buscar orden o proveedor..."
-                            value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setPage(1);
-                            }}
-                        />
+                        <Input placeholder="Buscar orden o proveedor..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
                     </div>
-
                     <PurchaseOrdersTable
                         orders={orders}
-                        loading={ordersLoading}
-                        onView={(order) => {
-                            console.log('Ver orden', order);
-                        }}
-                        onCreateInvoice={(order) => {
-                            setSelectedOrder(order);
-                            setShowInvoiceModal(true);
-                        }}
+                        loading={ordersLoading || receiveOrderMutation.isLoading}
+                        onView={(order) => console.log('Ver orden', order)}
+                        onCreateInvoice={(order) => { setSelectedOrder(order); setShowInvoiceModal(true); }}
+                        onReceive={handleReceiveOrder} // <-- Conectado
                     />
-
-                    <Pagination
-                        current={pagination.current}
-                        total={pagination.total}
-                        onChange={setPage}
-                        pageSize={limit}
-                        onPageSizeChange={(newSize) => {
-                            setLimit(newSize);
-                            setPage(1);
-                        }}
-                    />
+                    {pagination && <Pagination current={pagination.current} total={pagination.total} onChange={setPage} pageSize={limit} onPageSizeChange={(newSize) => { setLimit(newSize); setPage(1); }} />}
                 </>
             ) : (
-                    <PurchaseInvoicesTable
+                <PurchaseInvoicesTable
                     invoices={invoices}
                     loading={invoicesLoading}
-                    onView={(invoice) => {
-                        setSelectedInvoice(invoice);
-                        setShowInvoiceDetailModal(true);
-                    }}
-                    onRegisterPayment={(invoice) => {
-                        setSelectedInvoice(invoice);
-                        setShowPaymentModal(true);
-                    }}
-                    onReceive={(invoice) => {
-                        setSelectedInvoice(invoice);
-                        setShowReceptionModal(true);
-                    }}
+                    onView={(invoice) => { setSelectedInvoice(invoice); setShowInvoiceDetailModal(true); }}
+                    onRegisterPayment={(invoice) => { setSelectedInvoice(invoice); setShowPaymentModal(true); }}
+                    onReceive={(invoice) => { setSelectedInvoice(invoice); setShowReceptionModal(true); }}
                 />
             )}
 
             {/* Modals */}
-            <InvoiceModal
-                visible={showInvoiceModal}
-                order={selectedOrder}
-                loading={invoicesLoading}
-                onClose={() => setShowInvoiceModal(false)}
-                onSubmit={handleCreateInvoice}
-            />
-
-            <PaymentModal
-                visible={showPaymentModal}
-                invoice={selectedInvoice}
-                loading={invoicesLoading}
-                onClose={() => setShowPaymentModal(false)}
-                onSubmit={handleRegisterPayment}
-            />
-
-            <ReceptionModal
-                visible={showReceptionModal}
-                invoice={selectedInvoice}
-                loading={invoicesLoading}
-                onClose={() => setShowReceptionModal(false)}
-                onSubmit={handleReception}
-            />
-            <PurchaseInvoiceDetailModal
-                visible={showInvoiceDetailModal}
-                invoice={selectedInvoice}
-                onClose={() => setShowInvoiceDetailModal(false)}
-            />
+            <InvoiceModal visible={showInvoiceModal} order={selectedOrder} loading={invoicesLoading} onClose={() => setShowInvoiceModal(false)} onSubmit={handleCreateInvoice} />
+            <PaymentModal visible={showPaymentModal} invoice={selectedInvoice} loading={invoicesLoading} onClose={() => setShowPaymentModal(false)} onSubmit={handleRegisterPayment} />
+            <ReceptionModal visible={showReceptionModal} invoice={selectedInvoice} loading={invoicesLoading} onClose={() => setShowReceptionModal(false)} onSubmit={handleReception} />
+            <PurchaseInvoiceDetailModal visible={showInvoiceDetailModal} invoice={selectedInvoice} onClose={() => setShowInvoiceDetailModal(false)} />
         </div>
     );
 };

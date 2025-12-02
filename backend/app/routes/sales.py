@@ -1,121 +1,44 @@
 from fastapi import APIRouter, HTTPException
-from typing import List, Optional
-from pydantic import BaseModel
-from beanie import PydanticObjectId
-from app.models.sales import SalesOrder, SalesInvoice, Customer, PaymentStatus, CustomerBranch
-from app.services import sales_service
-from app.schemas.sales_schemas import InvoiceCreation, PaymentRegistration, DispatchRequest
-from app.schemas.common import PaginatedResponse
+from typing import List
 
-router = APIRouter(prefix="/sales", tags=["Sales"])
+# Importa el nuevo servicio de numeración
+from app.services.document_number_service import get_next_document_number
 
-# ==================== ORDERS ====================
+# Importa los modelos con los nombres correctos
+from app.models.sales import Customer, SalesOrder, SalesInvoice, SalesOrderDetail, SalesPayment
 
-@router.post("/orders", response_model=SalesOrder)
-async def create_order(order: SalesOrder):
-    return await sales_service.create_order(order)
+router = APIRouter(prefix="/api/v1/sales", tags=["Sales"])
 
-@router.get("/orders", response_model=PaginatedResponse[SalesOrder])
-async def get_orders(
-    skip: int = 0,
-    limit: int = 50,
-    search: Optional[str] = None,
-    status: Optional[str] = None,
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None
-):
-    return await sales_service.get_orders(skip, limit, search, status, date_from, date_to)
-
-@router.get("/products/{sku}/history")
-async def get_product_history(sku: str, limit: int = 10):
-    return await sales_service.get_product_sales_history(sku, limit)
-
-# ==================== INVOICES ====================
-
-@router.post("/invoices", response_model=SalesInvoice)
-async def create_invoice(invoice_data: InvoiceCreation):
-    return await sales_service.create_invoice(
-        invoice_data.order_number,
-        invoice_data.invoice_number,
-        invoice_data.invoice_date,
-        invoice_data.payment_status,
-        invoice_data.amount_paid,
-        invoice_data.payment_date
-    )
-
-@router.get("/invoices", response_model=PaginatedResponse[SalesInvoice])
-async def get_invoices(
-    skip: int = 0,
-    limit: int = 50,
-    search: Optional[str] = None,
-    payment_status: Optional[str] = None,
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None
-):
-    return await sales_service.get_invoices(skip, limit, search, payment_status, date_from, date_to)
-
-@router.get("/invoices/{invoice_number}", response_model=SalesInvoice)
-async def get_invoice(invoice_number: str):
-    return await sales_service.get_invoice(invoice_number)
-
-# ==================== PAYMENTS ====================
-
-@router.post("/invoices/{invoice_number}/payments")
-async def register_payment(invoice_number: str, payment_data: PaymentRegistration):
-    return await sales_service.register_payment(
-        invoice_number,
-        payment_data.amount,
-        payment_data.payment_date,
-        payment_data.notes
-    )
-
-# ==================== CUSTOMERS ====================
-
-@router.get("/customers", response_model=List[Customer])
-async def get_customers():
-    return await sales_service.get_customers()
-
-@router.get("/customers/by-ruc/{ruc}", response_model=Customer)
-async def get_customer_by_ruc(ruc: str):
-    return await sales_service.get_customer_by_ruc(ruc)
-
-@router.post("/customers", response_model=Customer)
+# --- Rutas para Clientes (Customers) ---
+@router.post("/customers/", response_model=Customer)
 async def create_customer(customer: Customer):
-    return await sales_service.create_customer(customer)
+    await customer.insert()
+    return customer
 
-@router.delete("/customers/{id}")
-async def delete_customer(id: PydanticObjectId):
-    await sales_service.delete_customer(id)
-    return {"message": "Customer deleted"}
+@router.get("/customers/", response_model=List[Customer])
+async def list_customers():
+    return await Customer.find_all().to_list()
 
-@router.put("/customers/{id}", response_model=Customer)
-async def update_customer(id: PydanticObjectId, customer_data: Customer):
-    return await sales_service.update_customer(id, customer_data)
+# --- Rutas para Órdenes de Venta (Sales Orders) ---
+@router.post("/sales-orders/", response_model=SalesOrder)
+async def create_sales_order(order: SalesOrder):
+    # Lógica de numeración automática para Órdenes de Venta
+    order.order_number = await get_next_document_number("OV", SalesOrder)
+    await order.insert()
+    return order
 
-# ==================== CUSTOMER BRANCHES ====================
+@router.get("/sales-orders/", response_model=List[SalesOrder])
+async def list_sales_orders():
+    return await SalesOrder.find_all().to_list()
 
-@router.post("/customers/{id}/branches", response_model=Customer)
-async def add_customer_branch(id: PydanticObjectId, branch: CustomerBranch):
-    return await sales_service.add_customer_branch(id, branch)
+# --- Rutas para Facturas de Venta (Sales Invoices) ---
+@router.post("/sales-invoices/", response_model=SalesInvoice)
+async def create_sales_invoice(invoice: SalesInvoice):
+    # Lógica de numeración automática para Facturas de Venta
+    invoice.invoice_number = await get_next_document_number("FV", SalesInvoice)
+    await invoice.insert()
+    return invoice
 
-@router.get("/customers/{id}/branches", response_model=List[CustomerBranch])
-async def get_customer_branches(id: PydanticObjectId):
-    return await sales_service.get_customer_branches(id)
-
-@router.put("/customers/{id}/branches/{branch_index}", response_model=Customer)
-async def update_customer_branch(id: PydanticObjectId, branch_index: int, branch: CustomerBranch):
-    return await sales_service.update_customer_branch(id, branch_index, branch)
-
-@router.delete("/customers/{id}/branches/{branch_index}", response_model=Customer)
-async def delete_customer_branch(id: PydanticObjectId, branch_index: int):
-    return await sales_service.delete_customer_branch(id, branch_index)
-
-# ==================== DISPATCH ====================
-
-@router.post("/invoices/{invoice_number}/dispatch")
-async def create_dispatch_guide(invoice_number: str, dispatch_data: DispatchRequest):
-    return await sales_service.create_dispatch_guide(
-        invoice_number,
-        dispatch_data.notes,
-        dispatch_data.created_by
-    )
+@router.get("/sales-invoices/", response_model=List[SalesInvoice])
+async def list_sales_invoices():
+    return await SalesInvoice.find_all().to_list()

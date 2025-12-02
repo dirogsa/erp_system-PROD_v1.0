@@ -16,7 +16,6 @@ const InvoiceForm = ({
     const { showNotification } = useNotification();
 
     const [formData, setFormData] = useState({
-        invoice_number: '',
         invoice_date: new Date().toISOString().split('T')[0],
         payment_status: 'PENDING',
         payment_method: '',
@@ -33,11 +32,6 @@ const InvoiceForm = ({
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        if (!formData.invoice_number) {
-            showNotification('El número de factura es obligatorio', 'error');
-            return;
-        }
-
         // Validar montos si está pagado
         if (formData.payment_status === 'PAID' && formData.amount_paid < order.total_amount) {
             showNotification('El monto pagado debe cubrir el total para marcar como Pagado', 'warning');
@@ -47,7 +41,6 @@ const InvoiceForm = ({
         // Build payload matching backend InvoiceCreation schema
         const payload = {
             order_number: order.order_number,  // Send order_number, not order_id
-            invoice_number: formData.invoice_number,
             invoice_date: formData.invoice_date,
             payment_status: formData.payment_status,
             amount_paid: formData.amount_paid,
@@ -69,15 +62,7 @@ const InvoiceForm = ({
                     Detalles de Facturación
                 </h3>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <Input
-                        label="Número de Factura"
-                        value={formData.invoice_number}
-                        onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
-                        placeholder="F001-00000001"
-                        required
-                    />
-
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
                     <Input
                         label="Fecha de Emisión"
                         type="date"

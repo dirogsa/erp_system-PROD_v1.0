@@ -10,5 +10,7 @@ SUCCESS: The process with PID 7136 has been terminated.
 
 
 venv\Scripts\activate && uvicorn main:app --reload
+source venv/bin/activate && uvicorn main:app --reload
+
 npm run dev
 

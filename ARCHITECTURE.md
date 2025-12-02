@@ -10,6 +10,7 @@ The backend is a Python application built with the FastAPI framework. It handles
 backend/
 ├── app/
 │   ├── __init__.py
+│   ├── config.py
 │   ├── database.py
 │   ├── exceptions/
 │   │   ├── __init__.py
@@ -38,7 +39,8 @@ backend/
 │       └── sales_service.py
 ├── main.py
 ├── requirements.txt
-└── test_connection.py
+├── test_connection.py
+└── test_db_connection.py
 ```
 
 ## Frontend
@@ -71,6 +73,7 @@ frontend/
 │   │   │   ├── customers/
 │   │   │   │   └── CustomerForm.jsx
 │   │   │   ├── inventory/
+│   │   │   │   ├── InventoryAdjustmentModal.jsx
 │   │   │   │   ├── LossesSection.jsx
 │   │   │   │   ├── ProductForm.jsx
 │   │   │   │   ├── ProductsTable.jsx
@@ -100,7 +103,7 @@ frontend/
 │   │   │   ├── OrderForm/
 │   │   │   │   ├── CustomerSelector.jsx
 │   │   │   │   ├── OrderSummary.jsx
-│   │   │   │   └── ProductItemsSection.jsx
+│   │   │   │   ├── ProductItemsSection.jsx
 │   │   │   │   └── index.jsx
 │   │   │   └── PaymentForm/
 │   │   │       └── index.jsx
@@ -142,7 +145,7 @@ frontend/
 │   ├── App.jsx
 │   ├── index.css
 │   └── main.jsx
-├── .eslintrc.cjs
+├── eslint.config.js
 ├── index.html
 ├── package.json
 ├── package-lock.json

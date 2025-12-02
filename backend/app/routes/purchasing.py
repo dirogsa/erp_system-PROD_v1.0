@@ -1,95 +1,92 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Optional
-from pydantic import BaseModel
-from beanie import PydanticObjectId
-from app.models.purchasing import PurchaseOrder, PurchaseInvoice, Supplier, PaymentStatus
-from app.services import purchasing_service
-from app.schemas.purchasing_schemas import InvoiceCreation, PaymentRegistration, ReceptionRequest
-from app.schemas.common import PaginatedResponse
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List
 
-router = APIRouter(prefix="/purchasing", tags=["Purchasing"])
+# Importa el nuevo servicio de numeración
+from app.services.document_number_service import get_next_document_number
 
-# ==================== ORDERS ====================
+# Modelos de Purchasing
+from app.models.purchasing import Order, Invoice, Supplier, OrderDetail, OrderStatus
+# Modelos de Inventory para mover stock
+from app.models.inventory import Product, StockMovement, MovementType
 
-@router.post("/orders", response_model=PurchaseOrder)
-async def create_order(order: PurchaseOrder):
-    return await purchasing_service.create_order(order)
+router = APIRouter(prefix="/api/v1/purchasing", tags=["Purchasing"])
 
-@router.get("/orders", response_model=PaginatedResponse[PurchaseOrder])
-async def get_orders(
-    skip: int = 0,
-    limit: int = 50,
-    search: Optional[str] = None,
-    status: Optional[str] = None,
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None
-):
-    return await purchasing_service.get_orders(skip, limit, search, status, date_from, date_to)
-
-# ==================== INVOICES ====================
-
-@router.post("/invoices", response_model=PurchaseInvoice)
-async def create_invoice(invoice_data: InvoiceCreation):
-    return await purchasing_service.create_invoice(
-        invoice_data.order_number,
-        invoice_data.invoice_number,
-        invoice_data.invoice_date,
-        invoice_data.payment_status,
-        invoice_data.amount_paid,
-        invoice_data.payment_date
-    )
-
-@router.get("/invoices", response_model=PaginatedResponse[PurchaseInvoice])
-async def get_invoices(
-    skip: int = 0,
-    limit: int = 50,
-    search: Optional[str] = None,
-    payment_status: Optional[str] = None,
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None
-):
-    return await purchasing_service.get_invoices(skip, limit, search, payment_status, date_from, date_to)
-
-@router.get("/invoices/{invoice_number}", response_model=PurchaseInvoice)
-async def get_invoice(invoice_number: str):
-    return await purchasing_service.get_invoice(invoice_number)
-
-# ==================== PAYMENTS ====================
-
-@router.post("/invoices/{invoice_number}/payments")
-async def register_payment(invoice_number: str, payment_data: PaymentRegistration):
-    return await purchasing_service.register_payment(
-        invoice_number,
-        payment_data.amount,
-        payment_data.payment_date,
-        payment_data.notes
-    )
-
-# ==================== SUPPLIERS ====================
-
-@router.get("/suppliers", response_model=List[Supplier])
-async def get_suppliers():
-    return await purchasing_service.get_suppliers()
-
-@router.post("/suppliers", response_model=Supplier)
+# --- Rutas para Proveedores (Suppliers) ---
+@router.post("/suppliers/", response_model=Supplier)
 async def create_supplier(supplier: Supplier):
-    return await purchasing_service.create_supplier(supplier)
+    await supplier.insert()
+    return supplier
 
-@router.delete("/suppliers/{id}")
-async def delete_supplier(id: PydanticObjectId):
-    await purchasing_service.delete_supplier(id)
-    return {"message": "Supplier deleted"}
+@router.get("/suppliers/", response_model=List[Supplier])
+async def list_suppliers():
+    return await Supplier.find_all().to_list()
 
-@router.put("/suppliers/{id}", response_model=Supplier)
-async def update_supplier(id: PydanticObjectId, supplier_data: Supplier):
-    return await purchasing_service.update_supplier(id, supplier_data)
+# --- Rutas para Órdenes de Compra (Orders) ---
+@router.post("/orders/", response_model=Order)
+async def create_purchase_order(order: Order):
+    # Lógica de numeración automática
+    order.order_number = await get_next_document_number("OC", Order)
+    await order.insert()
+    return order
 
-# ==================== RECEPTION ====================
+@router.get("/orders/", response_model=List[Order])
+async def list_purchase_orders():
+    return await Order.find_all().to_list()
 
-@router.post("/invoices/{invoice_number}/receive")
-async def create_reception_guide(invoice_number: str, reception_data: ReceptionRequest):
-    return await purchasing_service.create_reception_guide(
-        invoice_number,
-        reception_data.notes,
-        reception_data.created_by
-    )
+@router.post("/orders/{order_id}/receive", response_model=Order)
+async def receive_purchase_order(order_id: str):
+    """
+    Recibe la mercancía de una orden de compra, actualizando el stock.
+    """
+    # 1. Buscar la orden de compra
+    order = await Order.get(order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # 2. Verificar que no haya sido recibida antes
+    if order.status == OrderStatus.RECEIVED:
+        raise HTTPException(status_code=400, detail="Order has already been received")
+
+    # 3. Iterar y crear movimientos de stock
+    for item in order.items:
+        # Buscar el producto para asegurar que existe
+        product = await Product.find_one({"sku": item.product_sku})
+        if not product:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Product with SKU {item.product_sku} not found. Cannot receive order."
+            )
+        
+        # Crear el movimiento de stock (INGRESO)
+        movement = StockMovement(
+            product_sku=item.product_sku,
+            quantity=item.quantity,
+            movement_type=MovementType.IN,
+            reference_document=f"PO-{order.order_number}" # Referencia a la orden de compra
+        )
+        
+        # La lógica de actualización de stock ya está en el evento de inserción del movimiento
+        # Disparado desde la ruta de /stock-movements, así que debemos replicarlo aquí.
+        product.stock_current += movement.quantity
+        
+        await movement.insert()
+        await product.save()
+
+    # 4. Actualizar el estado de la orden
+    order.status = OrderStatus.RECEIVED
+    await order.save()
+
+    return order
+
+
+# --- Rutas para Facturas de Compra (Invoices) ---
+@router.post("/invoices/", response_model=Invoice)
+async def create_purchase_invoice(invoice: Invoice):
+    # Lógica de numeración automática
+    invoice.invoice_number = await get_next_document_number("FC", Invoice)
+    await invoice.insert()
+    return invoice
+
+@router.get("/invoices/", response_model=List[Invoice])
+async def list_purchase_invoices():
+    return await Invoice.find_all().to_list()

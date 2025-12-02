@@ -1,81 +1,81 @@
 import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import ProductsTable from '../components/features/inventory/ProductsTable';
 import ProductForm from '../components/features/inventory/ProductForm';
 import TransfersSection from '../components/features/inventory/TransfersSection';
-import LossesSection from '../components/features/inventory/LossesSection';
-import InventoryAdjustmentModal from '../components/features/inventory/InventoryAdjustmentModal'; // Importado
+import StockMovementsSection from '../components/features/inventory/StockMovementsSection'; // Importado
 import Pagination from '../components/common/Table/Pagination';
 import { useProducts } from '../hooks/useProducts';
-import { inventoryService } from '../services/api';
+import { createProduct, updateProduct, deleteProduct } from '../services/api';
+import { useNotification } from '../hooks/useNotification';
 
 const Inventory = () => {
     const [activeTab, setActiveTab] = useState('products');
     const [showProductModal, setShowProductModal] = useState(false);
-    const [showAdjustmentModal, setShowAdjustmentModal] = useState(false); // Nuevo estado
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [isViewMode, setIsViewMode] = useState(false);
-
-    // Pagination & Search State
+    
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
     const [search, setSearch] = useState('');
-    const [measurementFilters, setMeasurementFilters] = useState([]);
-    const [filteredProducts, setFilteredProducts] = useState(null);
+    const queryClient = useQueryClient();
+    const { showNotification } = useNotification();
 
-    const {
-        products,
-        pagination,
-        loading,
-        refetch,
-        createProduct,
-        updateProduct,
-        deleteProduct
-    } = useProducts({ page, limit, search });
+    const { products, total, isLoading, error } = useProducts(page, limit, search);
 
-    const isFiltered = !!filteredProducts;
+    const createMutation = useMutation({
+        mutationFn: (newProductData) => createProduct(newProductData),
+        onSuccess: () => {
+            showNotification('Producto creado con éxito', 'success');
+            queryClient.invalidateQueries(['products']);
+            setShowProductModal(false);
+        },
+        onError: (err) => {
+            showNotification(err.response?.data?.detail || 'Error al crear el producto', 'error');
+        }
+    });
 
-    const handleApplyMeasurementFilters = async () => {
-        if (!measurementFilters || measurementFilters.length === 0) return;
+    const updateMutation = useMutation({
+        mutationFn: ({ sku, data }) => updateProduct(sku, data),
+        onSuccess: () => {
+            showNotification('Producto actualizado con éxito', 'success');
+            queryClient.invalidateQueries(['products']);
+            setShowProductModal(false);
+            setSelectedProduct(null);
+        },
+        onError: (err) => {
+            showNotification(err.response?.data?.detail || 'Error al actualizar el producto', 'error');
+        }
+    });
 
-        const payload = {
-            measurementFilters: measurementFilters.map(f => ({ label: f.label, unit: f.unit, min: f.min ? Number(f.min) : undefined, max: f.max ? Number(f.max) : undefined })),
-            skip: 0,
-            limit: 100
-        };
+    const deleteMutation = useMutation({
+        mutationFn: (sku) => deleteProduct(sku),
+        onSuccess: () => {
+            showNotification('Producto eliminado con éxito', 'success');
+            queryClient.invalidateQueries(['products']);
+        },
+        onError: (err) => {
+            showNotification(err.response?.data?.detail || 'Error al eliminar el producto', 'error');
+        }
+    });
 
-        try {
-            const resp = await inventoryService.searchProducts(payload);
-            setFilteredProducts({ items: resp.data.items, page: resp.data.page, pages: resp.data.pages, total: resp.data.total });
-        } catch (err) {
-            console.error('Error searching products by measurements', err);
-            alert('Error al buscar productos por medidas');
+    const handleFormSubmit = (data) => {
+        if (selectedProduct) {
+            updateMutation.mutate({ sku: selectedProduct.sku, data });
+        } else {
+            createMutation.mutate(data);
         }
     };
 
-    const clearMeasurementFilters = () => {
-        setMeasurementFilters([]);
-        setFilteredProducts(null);
+    const handleDelete = (product) => {
+        if (window.confirm(`¿Está seguro de eliminar el producto "${product.name}"?`)) {
+            deleteMutation.mutate(product.sku);
+        }
     };
 
-    const handleCreate = async (data) => {
-        try {
-            await createProduct(data, data.initial_stock);
-            setShowProductModal(false);
-        } catch (error) { }
-    };
-
-    const handleUpdate = async (data) => {
-        try {
-            await updateProduct(data.sku, data, data.stock_current);
-            setShowProductModal(false);
-        } catch (error) { }
-    };
-
-    const handleAdjustmentSuccess = () => {
-        setShowAdjustmentModal(false);
-        refetch(); // Refrescar los datos de la tabla
+    const handlePageChange = (newPage) => {
+        setPage(newPage);
     };
 
     return (
@@ -83,16 +83,12 @@ const Inventory = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
                     <h1 style={{ color: 'white', marginBottom: '0.5rem' }}>Gestión de Inventario</h1>
-                    <p style={{ color: '#94a3b8' }}>Control de productos, transferencias y mermas</p>
+                    <p style={{ color: '#94a3b8' }}>Control de productos, transferencias y movimientos</p>
                 </div>
                 {activeTab === 'products' && (
                     <div style={{ display: 'flex', gap: '1rem' }}>
-                        <Button onClick={() => setShowAdjustmentModal(true)} variant="secondary">
-                            Ajuste de Inventario
-                        </Button>
                         <Button onClick={() => {
                             setSelectedProduct(null);
-                            setIsViewMode(false);
                             setShowProductModal(true);
                         }}>
                             + Nuevo Producto
@@ -109,12 +105,26 @@ const Inventory = () => {
                         background: 'none',
                         border: 'none',
                         borderBottom: activeTab === 'products' ? '2px solid #3b82f6' : 'none',
-                        color: activeTab === 'products' ? '#3b82f6' : '#94a3b8',
+                        color: activeTab === 'products' ? '#3b82f6' : 'white',
                         cursor: 'pointer',
                         fontWeight: '500'
                     }}
                 >
                     📦 Productos
+                </button>
+                <button
+                    onClick={() => setActiveTab('movements')}
+                    style={{
+                        padding: '1rem 2rem',
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: activeTab === 'movements' ? '2px solid #3b82f6' : 'none',
+                        color: activeTab === 'movements' ? '#3b82f6' : 'white',
+                        cursor: 'pointer',
+                        fontWeight: '500'
+                    }}
+                >
+                    ↕️ Ingreso/Salida
                 </button>
                 <button
                     onClick={() => setActiveTab('transfers')}
@@ -123,26 +133,12 @@ const Inventory = () => {
                         background: 'none',
                         border: 'none',
                         borderBottom: activeTab === 'transfers' ? '2px solid #3b82f6' : 'none',
-                        color: activeTab === 'transfers' ? '#3b82f6' : '#94a3b8',
+                        color: activeTab === 'transfers' ? '#3b82f6' : 'white',
                         cursor: 'pointer',
                         fontWeight: '500'
                     }}
                 >
                     🚚 Transferencias
-                </button>
-                <button
-                    onClick={() => setActiveTab('losses')}
-                    style={{
-                        padding: '1rem 2rem',
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: activeTab === 'losses' ? '2px solid #3b82f6' : 'none',
-                        color: activeTab === 'losses' ? '#3b82f6' : '#94a3b8',
-                        cursor: 'pointer',
-                        fontWeight: '500'
-                    }}
-                >
-                    ⚠️ Mermas
                 </button>
             </div>
 
@@ -154,70 +150,37 @@ const Inventory = () => {
                             value={search}
                             onChange={(e) => {
                                 setSearch(e.target.value);
-                                setPage(1); // Reset to first page on search
-                            }}
-                        />
-                    </div>
-
-                    <div style={{ marginBottom: '1rem', padding: '0.5rem', border: '1px dashed #334155' }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', color: 'white' }}>Filtros por Medida (opcional)</h4>
-                        {measurementFilters.map((f, idx) => (
-                            <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                                <input placeholder="Etiqueta (ej: A)" value={f.label} onChange={(e) => { const next = [...measurementFilters]; next[idx].label = e.target.value; setMeasurementFilters(next); }} />
-                                <select value={f.unit} onChange={(e) => { const next = [...measurementFilters]; next[idx].unit = e.target.value; setMeasurementFilters(next); }}>
-                                    <option value="mm">mm</option>
-                                    <option value="rosca">rosca</option>
-                                </select>
-                                <input placeholder="Min" type="number" value={f.min} onChange={(e) => { const next = [...measurementFilters]; next[idx].min = e.target.value; setMeasurementFilters(next); }} style={{ width: '90px' }} />
-                                <input placeholder="Max" type="number" value={f.max} onChange={(e) => { const next = [...measurementFilters]; next[idx].max = e.target.value; setMeasurementFilters(next); }} style={{ width: '90px' }} />
-                                <button onClick={() => { const next = [...measurementFilters]; next.splice(idx,1); setMeasurementFilters(next); }}>Eliminar</button>
-                            </div>
-                        ))}
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button onClick={() => setMeasurementFilters([...(measurementFilters||[]), {label: '', unit: 'mm', min: '', max: ''}])}>+ Añadir filtro</button>
-                            <button onClick={handleApplyMeasurementFilters}>Aplicar filtros de medida</button>
-                            <button onClick={clearMeasurementFilters}>Limpiar</button>
-                        </div>
-                    </div>
-
-                    <ProductsTable
-                        products={isFiltered ? filteredProducts.items : products}
-                        loading={loading}
-                        onView={(product) => {
-                            console.log('Ver producto', product);
-                        }}
-                        onEdit={(product) => {
-                            setSelectedProduct(product);
-                            setIsViewMode(false);
-                            setShowProductModal(true);
-                        }}
-                        onDelete={(product) => {
-                            if (window.confirm('¿Está seguro de eliminar este producto?')) {
-                                deleteProduct(product.sku);
-                            }
-                        }}
-                    />
-
-                    {!isFiltered && (
-                        <Pagination
-                            current={pagination.current}
-                            total={pagination.total}
-                            onChange={setPage}
-                            pageSize={limit}
-                            onPageSizeChange={(newSize) => {
-                                setLimit(newSize);
                                 setPage(1);
                             }}
                         />
-                    )}
+                    </div>
+                    
+                    <ProductsTable
+                        products={products}
+                        loading={isLoading}
+                        onEdit={(product) => {
+                            setSelectedProduct(product);
+                            setShowProductModal(true);
+                        }}
+                        onDelete={handleDelete}
+                    />
+
+                    <Pagination
+                        current={page}
+                        total={total}
+                        onChange={handlePageChange}
+                        pageSize={limit}
+                        onPageSizeChange={(newSize) => {
+                            setLimit(newSize);
+                            setPage(1);
+                        }}
+                    />
                 </>
             )}
 
+            {activeTab === 'movements' && <StockMovementsSection />}
             {activeTab === 'transfers' && <TransfersSection />}
-
-            {activeTab === 'losses' && <LossesSection />}
-
-            {/* Modal de Producto */}
+            
             {showProductModal && (
                  <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -231,20 +194,13 @@ const Inventory = () => {
                         </div>
                         <ProductForm
                             initialData={selectedProduct}
-                            onSubmit={selectedProduct ? handleUpdate : handleCreate}
+                            onSubmit={handleFormSubmit}
                             onCancel={() => setShowProductModal(false)}
-                            loading={loading}
+                            loading={createMutation.isLoading || updateMutation.isLoading}
                         />
                     </div>
                 </div>
             )}
-            
-            {/* Modal de Ajuste de Inventario */}
-            <InventoryAdjustmentModal
-                isOpen={showAdjustmentModal}
-                onClose={() => setShowAdjustmentModal(false)}
-                onAdjustmentSuccess={handleAdjustmentSuccess}
-            />
         </div>
     );
 };

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { purchasingService } from '../services/api';
+// Se importan las funciones correctas
+import { getSuppliers, createSupplier, updateSupplier } from '../services/api';
 import { useNotification } from './useNotification';
 
 export const useSuppliers = () => {
@@ -12,7 +13,8 @@ export const useSuppliers = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await purchasingService.getSuppliers();
+            // Se usa la función correcta
+            const response = await getSuppliers();
             setSuppliers(response.data);
         } catch (err) {
             setError(err);
@@ -23,10 +25,11 @@ export const useSuppliers = () => {
         }
     }, [showNotification]);
 
-    const createSupplier = useCallback(async (supplierData) => {
+    const addSupplier = useCallback(async (supplierData) => {
         setLoading(true);
         try {
-            const response = await purchasingService.createSupplier(supplierData);
+            // Se usa la función correcta
+            const response = await createSupplier(supplierData);
             await fetchSuppliers();
             showNotification('Proveedor creado exitosamente', 'success');
             return response.data;
@@ -39,10 +42,11 @@ export const useSuppliers = () => {
         }
     }, [fetchSuppliers, showNotification]);
 
-    const updateSupplier = useCallback(async (id, supplierData) => {
+    const editSupplier = useCallback(async (id, supplierData) => {
         setLoading(true);
         try {
-            await purchasingService.updateSupplier(id, supplierData);
+            // Se usa la función correcta
+            await updateSupplier(id, supplierData);
             await fetchSuppliers();
             showNotification('Proveedor actualizado exitosamente', 'success');
         } catch (err) {
@@ -54,20 +58,7 @@ export const useSuppliers = () => {
         }
     }, [fetchSuppliers, showNotification]);
 
-    const deleteSupplier = useCallback(async (id) => {
-        setLoading(true);
-        try {
-            await purchasingService.deleteSupplier(id);
-            await fetchSuppliers();
-            showNotification('Proveedor eliminado exitosamente', 'success');
-        } catch (err) {
-            const errorMessage = err.response?.data?.detail || 'Error al eliminar proveedor';
-            showNotification(errorMessage, 'error');
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [fetchSuppliers, showNotification]);
+    // NOTA: La función deleteSupplier no existe en el api.js actual.
 
     useEffect(() => {
         fetchSuppliers();
@@ -78,8 +69,7 @@ export const useSuppliers = () => {
         loading,
         error,
         fetchSuppliers,
-        createSupplier,
-        updateSupplier,
-        deleteSupplier
+        createSupplier: addSupplier,
+        updateSupplier: editSupplier,
     };
 };

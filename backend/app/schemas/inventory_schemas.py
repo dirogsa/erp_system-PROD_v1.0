@@ -14,13 +14,6 @@ class ProductSearchRequest(BaseModel):
     skip: Optional[int] = 0
     limit: Optional[int] = 50
 
-class LossRegistration(BaseModel):
-    sku: str
-    quantity: int
-    loss_type: MovementType
-    notes: str
-    responsible: str
-
 class TransferItem(BaseModel):
     sku: str
     quantity: int

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { salesService } from '../services/api';
+// Se importan las funciones correctas
+import { getSalesOrders, createSalesOrder } from '../services/api';
 import { useNotification } from './useNotification';
 
 export const useSalesOrders = ({ page = 1, limit = 50, search = '', status = '', date_from = '', date_to = '' } = {}) => {
@@ -15,8 +16,8 @@ export const useSalesOrders = ({ page = 1, limit = 50, search = '', status = '',
         queryKey: ['sales-orders', { page, limit, search, status, date_from, date_to }],
         queryFn: async () => {
             try {
-                // Corrected function name from getSales to getSalesOrders
-                const response = await salesService.getSalesOrders(page, limit, search, status, date_from, date_to);
+                // Se usa la función correcta
+                const response = await getSalesOrders({ page, limit, search, status, date_from, date_to });
                 console.log('Sales Orders API Response:', response.data);
                 return response.data;
             } catch (err) {
@@ -33,7 +34,8 @@ export const useSalesOrders = ({ page = 1, limit = 50, search = '', status = '',
     });
 
     const createMutation = useMutation({
-        mutationFn: (orderData) => salesService.createSalesOrder(orderData), // Corrected: createSalesOrder
+        // Se usa la función correcta
+        mutationFn: (orderData) => createSalesOrder(orderData),
         onSuccess: () => {
             queryClient.invalidateQueries(['sales-orders']);
             showNotification('Orden de venta creada exitosamente', 'success');

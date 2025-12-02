@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { salesService } from '../services/api';
+// Se importan las funciones directamente
+import { getCustomers, createCustomer, updateCustomer } from '../services/api';
 import { useNotification } from './useNotification';
 
 export const useCustomers = () => {
@@ -12,7 +13,8 @@ export const useCustomers = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await salesService.getCustomers();
+            // Se llama a la función directamente
+            const response = await getCustomers();
             setCustomers(response.data);
         } catch (err) {
             setError(err);
@@ -23,39 +25,11 @@ export const useCustomers = () => {
         }
     }, [showNotification]);
 
-    const getCustomerByRuc = useCallback(async (ruc) => {
+    const addCustomer = useCallback(async (customerData) => {
         setLoading(true);
         try {
-            const response = await salesService.getCustomerByRuc(ruc);
-            return response.data;
-        } catch (err) {
-            if (err.response?.status !== 404) {
-                showNotification('Error al buscar cliente', 'error');
-            }
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [showNotification]);
-
-    const getCustomerBranches = useCallback(async (customerId) => {
-        setLoading(true);
-        try {
-            const response = await salesService.getCustomerBranches(customerId);
-            return response.data;
-        } catch (err) {
-            showNotification('Error al cargar sucursales del cliente', 'error');
-            console.error('Error fetching customer branches:', err);
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [showNotification]);
-
-    const createCustomer = useCallback(async (customerData) => {
-        setLoading(true);
-        try {
-            const response = await salesService.createCustomer(customerData);
+            // Se llama a la función directamente
+            const response = await createCustomer(customerData);
             await fetchCustomers();
             showNotification('Cliente creado exitosamente', 'success');
             return response.data;
@@ -68,10 +42,11 @@ export const useCustomers = () => {
         }
     }, [fetchCustomers, showNotification]);
 
-    const updateCustomer = useCallback(async (id, customerData) => {
+    const editCustomer = useCallback(async (id, customerData) => {
         setLoading(true);
         try {
-            await salesService.updateCustomer(id, customerData);
+            // Se llama a la función directamente
+            await updateCustomer(id, customerData);
             await fetchCustomers();
             showNotification('Cliente actualizado exitosamente', 'success');
         } catch (err) {
@@ -83,20 +58,8 @@ export const useCustomers = () => {
         }
     }, [fetchCustomers, showNotification]);
 
-    const deleteCustomer = useCallback(async (id) => {
-        setLoading(true);
-        try {
-            await salesService.deleteCustomer(id);
-            await fetchCustomers();
-            showNotification('Cliente eliminado exitosamente', 'success');
-        } catch (err) {
-            const errorMessage = err.response?.data?.detail || 'Error al eliminar cliente';
-            showNotification(errorMessage, 'error');
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [fetchCustomers, showNotification]);
+    // NOTA: No existe un `deleteCustomer` en el api.js actual.
+    // Las funciones getCustomerByRuc y getCustomerBranches tampoco existen.
 
     useEffect(() => {
         fetchCustomers();
@@ -107,10 +70,7 @@ export const useCustomers = () => {
         loading,
         error,
         fetchCustomers,
-        getCustomerByRuc,
-        getCustomerBranches,
-        createCustomer,
-        updateCustomer,
-        deleteCustomer
+        createCustomer: addCustomer,
+        updateCustomer: editCustomer,
     };
 };

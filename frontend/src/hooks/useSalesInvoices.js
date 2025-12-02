@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { salesService } from '../services/api';
+// Se importan las funciones correctas
+import { getSalesInvoices, createSalesInvoice, recordSalesPayment } from '../services/api';
 import { useNotification } from './useNotification';
 
 export const useSalesInvoices = () => {
@@ -12,8 +13,8 @@ export const useSalesInvoices = () => {
         setLoading(true);
         setError(null);
         try {
-            // CORRECTED: Changed getInvoices to getSalesInvoices
-            const response = await salesService.getSalesInvoices();
+            // Se usa la función correcta
+            const response = await getSalesInvoices();
             setInvoices(response.data.items || []);
         } catch (err) {
             setError(err);
@@ -24,11 +25,11 @@ export const useSalesInvoices = () => {
         }
     }, [showNotification]);
 
-    const createInvoice = useCallback(async (invoiceData) => {
+    const addInvoice = useCallback(async (invoiceData) => {
         setLoading(true);
         try {
-            // NOTE: This function name might also need correction in the future.
-            const response = await salesService.createSalesInvoiceFromOrder(invoiceData.orderId, invoiceData);
+            // Se usa la función correcta
+            const response = await createSalesInvoice(invoiceData);
             await fetchInvoices();
             showNotification('Factura registrada exitosamente', 'success');
             return response.data;
@@ -49,11 +50,11 @@ export const useSalesInvoices = () => {
         }
     }, [fetchInvoices, showNotification]);
 
-    const registerPayment = useCallback(async (invoiceNumber, paymentData) => {
+    const registerPayment = useCallback(async (invoiceId, paymentData) => {
         setLoading(true);
         try {
-            // CORRECTED: Changed registerPayment to registerSalesPayment
-            await salesService.registerSalesPayment(invoiceNumber, paymentData);
+            // Se usa la función correcta
+            await recordSalesPayment(invoiceId, paymentData);
             await fetchInvoices();
             showNotification('Pago registrado exitosamente', 'success');
         } catch (err) {
@@ -65,21 +66,7 @@ export const useSalesInvoices = () => {
         }
     }, [fetchInvoices, showNotification]);
 
-    // NOTE: This function might not exist in the service and could cause future errors.
-    const createDispatchGuide = useCallback(async (invoiceNumber, guideData) => {
-        setLoading(true);
-        try {
-            await salesService.createDispatchGuide(invoiceNumber, guideData);
-            await fetchInvoices();
-            showNotification('Guía de despacho generada exitosamente', 'success');
-        } catch (err) {
-            const errorMessage = err.response?.data?.detail || 'Error al generar guía de despacho';
-            showNotification(errorMessage, 'error');
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [fetchInvoices, showNotification]);
+    // NOTA: La función createDispatchGuide no existe en el api.js actual.
 
     useEffect(() => {
         fetchInvoices();
@@ -90,8 +77,7 @@ export const useSalesInvoices = () => {
         loading,
         error,
         fetchInvoices,
-        createInvoice,
+        createInvoice: addInvoice,
         registerPayment,
-        createDispatchGuide
     };
 };

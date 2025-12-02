@@ -9,7 +9,6 @@ import Sales from './pages/Sales';
 import Suppliers from './pages/Suppliers';
 import Customers from './pages/Customers';
 import ImportExport from './pages/ImportExport';
-import Losses from './pages/Losses';
 import Transfers from './pages/Transfers';
 
 const Dashboard = () => (
@@ -52,7 +51,6 @@ function App() {
               <Route path="/sales" element={<Sales />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/import-export" element={<ImportExport />} />
-              <Route path="/losses" element={<Losses />} />
               <Route path="/transfers" element={<Transfers />} />
             </Routes>
           </Layout>

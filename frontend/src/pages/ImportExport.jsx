@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
-import { inventoryService } from '../services/api';
+import { importProducts, exportProducts } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 
 const ImportExport = () => {
@@ -17,7 +17,7 @@ const ImportExport = () => {
         setImportResult(null);
 
         try {
-            const response = await inventoryService.importProducts(file);
+            const response = await importProducts(file);
             setImportResult({ success: true, data: response.data });
         } catch (error) {
             setImportResult({
@@ -32,7 +32,7 @@ const ImportExport = () => {
 
     const handleExport = async () => {
         try {
-            const response = await inventoryService.exportProducts(exportType);
+            const response = await exportProducts(exportType);
 
             // Create download link
             const url = window.URL.createObjectURL(new Blob([response.data]));
