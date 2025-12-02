@@ -4,8 +4,8 @@ from typing import List
 # Importa el nuevo servicio de numeración
 from app.services.document_number_service import get_next_document_number
 
-# Modelos de Purchasing
-from app.models.purchasing import Order, Invoice, Supplier, OrderDetail, OrderStatus
+# Modelos de Purchasing (añadimos PaymentStatus)
+from app.models.purchasing import Order, Invoice, Supplier, OrderDetail, OrderStatus, PaymentStatus
 # Modelos de Inventory para mover stock
 from app.models.inventory import Product, StockMovement, MovementType
 
@@ -35,21 +35,13 @@ async def list_purchase_orders():
 
 @router.post("/orders/{order_id}/receive", response_model=Order)
 async def receive_purchase_order(order_id: str):
-    """
-    Recibe la mercancía de una orden de compra, actualizando el stock.
-    """
-    # 1. Buscar la orden de compra
     order = await Order.get(order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-
-    # 2. Verificar que no haya sido recibida antes
     if order.status == OrderStatus.RECEIVED:
         raise HTTPException(status_code=400, detail="Order has already been received")
 
-    # 3. Iterar y crear movimientos de stock
     for item in order.items:
-        # Buscar el producto para asegurar que existe
         product = await Product.find_one({"sku": item.product_sku})
         if not product:
             raise HTTPException(
@@ -57,32 +49,26 @@ async def receive_purchase_order(order_id: str):
                 detail=f"Product with SKU {item.product_sku} not found. Cannot receive order."
             )
         
-        # Crear el movimiento de stock (INGRESO)
         movement = StockMovement(
             product_sku=item.product_sku,
             quantity=item.quantity,
             movement_type=MovementType.IN,
-            reference_document=f"PO-{order.order_number}" # Referencia a la orden de compra
+            reference_document=f"PO-{order.order_number}"
         )
         
-        # La lógica de actualización de stock ya está en el evento de inserción del movimiento
-        # Disparado desde la ruta de /stock-movements, así que debemos replicarlo aquí.
         product.stock_current += movement.quantity
         
         await movement.insert()
         await product.save()
 
-    # 4. Actualizar el estado de la orden
     order.status = OrderStatus.RECEIVED
     await order.save()
 
     return order
 
-
 # --- Rutas para Facturas de Compra (Invoices) ---
 @router.post("/invoices/", response_model=Invoice)
 async def create_purchase_invoice(invoice: Invoice):
-    # Lógica de numeración automática
     invoice.invoice_number = await get_next_document_number("FC", Invoice)
     await invoice.insert()
     return invoice
@@ -90,3 +76,22 @@ async def create_purchase_invoice(invoice: Invoice):
 @router.get("/invoices/", response_model=List[Invoice])
 async def list_purchase_invoices():
     return await Invoice.find_all().to_list()
+
+# --- ¡NUEVA RUTA AÑADIDA! ---
+@router.post("/invoices/{invoice_id}/pay", response_model=Invoice)
+async def record_purchase_payment(invoice_id: str):
+    """
+    Registra el pago de una factura de compra.
+    """
+    invoice = await Invoice.get(invoice_id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    if invoice.payment_status == PaymentStatus.PAID:
+        raise HTTPException(status_code=400, detail="Invoice is already paid")
+
+    # Aquí se podría añadir lógica más compleja (pagos parciales, etc.)
+    # Por ahora, simplemente la marcamos como pagada.
+    invoice.payment_status = PaymentStatus.PAID
+    await invoice.save()
+    return invoice

@@ -27,7 +27,7 @@ export const getProducts = (params) => api.get('/api/v1/inventory/products', { p
 export const getProductById = (id) => api.get(`/api/v1/inventory/products/${id}`);
 export const createProduct = (product) => api.post('/api/v1/inventory/products', product);
 export const updateProduct = (id, product) => api.put(`/api/v1/inventory/products/${id}`, product);
-export const deleteProduct = (id) => api.delete(`/api/v1/inventory/products/${id}`); // <-- AÑADIDO
+export const deleteProduct = (id) => api.delete(`/api/v1/inventory/products/${id}`);
 
 export const getSuppliers = () => api.get('/api/v1/purchasing/suppliers');
 export const createSupplier = (supplier) => api.post('/api/v1/purchasing/suppliers', supplier);
@@ -38,6 +38,7 @@ export const receivePurchaseOrder = (orderId) => api.post(`/api/v1/purchasing/or
 
 export const getPurchaseInvoices = () => api.get('/api/v1/purchasing/invoices');
 export const createPurchaseInvoice = (invoice) => api.post('/api/v1/purchasing/invoices', invoice);
+export const recordPurchasePayment = (invoiceId) => api.post(`/api/v1/purchasing/invoices/${invoiceId}/pay`); // <-- AÑADIDO
 
 export const getSalesOrders = (params) => api.get('/api/v1/sales/orders', { params });
 export const createSalesOrder = (order) => api.post('/api/v1/sales/orders', order);
