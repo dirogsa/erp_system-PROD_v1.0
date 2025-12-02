@@ -28,6 +28,14 @@ async def get_product(product_id: str):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
+@router.delete("/products/{product_id}", status_code=204)
+async def delete_product(product_id: str):
+    product = await Product.get(product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    await product.delete()
+    return None # No se devuelve contenido en una respuesta 204
+
 # --- Rutas para Categorías (Categories) ---
 @router.post("/categories/", response_model=Category)
 async def create_category(category: Category):

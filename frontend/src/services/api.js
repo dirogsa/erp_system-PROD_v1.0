@@ -27,6 +27,7 @@ export const getProducts = (params) => api.get('/api/v1/inventory/products', { p
 export const getProductById = (id) => api.get(`/api/v1/inventory/products/${id}`);
 export const createProduct = (product) => api.post('/api/v1/inventory/products', product);
 export const updateProduct = (id, product) => api.put(`/api/v1/inventory/products/${id}`, product);
+export const deleteProduct = (id) => api.delete(`/api/v1/inventory/products/${id}`); // <-- AÑADIDO
 
 export const getSuppliers = () => api.get('/api/v1/purchasing/suppliers');
 export const createSupplier = (supplier) => api.post('/api/v1/purchasing/suppliers', supplier);
@@ -52,8 +53,6 @@ export const getStockMovements = (productId) => api.get(`/api/v1/inventory/stock
 export const adjustInventory = (data) => api.post('/api/v1/inventory/stock-movements/adjust', data);
 export const getWarehouses = () => api.get('/api/v1/inventory/warehouses');
 export const createTransfer = (transferData) => api.post('/api/v1/inventory/stock-movements/transfer', transferData);
-
-// --- ¡NUEVA FUNCIÓN AÑADIDA! ---
 export const createStockMovement = (movement) => api.post('/api/v1/inventory/stock-movements/', movement);
 
 export default api;
