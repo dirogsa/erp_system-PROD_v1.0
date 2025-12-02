@@ -1,11 +1,7 @@
 import axios from 'axios';
 
 // --- Configuración dinámica de la URL de la API ---
-// Lee la URL base de la API desde las variables de entorno de Vite.
-// Si la variable no está definida, por defecto apunta al localhost para desarrollo.
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-// Log para verificar qué URL se está utilizando (muy útil para depurar despliegues)
 console.log(`API Base URL: ${API_BASE_URL}`);
 
 // --- Instancia de Axios ---
@@ -14,24 +10,18 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Importante para que CORS funcione con credenciales
+  withCredentials: true,
 });
 
-// --- Interceptores (opcional, para depuración) ---
-api.interceptors.request.use(request => {
-  // console.log('Starting Request:', request.method, request.url);
-  return request;
-});
-
-api.interceptors.response.use(response => {
-  return response;
-}, error => {
+// --- Interceptores ---
+api.interceptors.request.use(request => request);
+api.interceptors.response.use(response => response, error => {
   console.error('API Response Error:', error.response?.data || error.message);
   return Promise.reject(error);
 });
 
 
-// --- Endpoints de la API (sin cambios) ---
+// --- Endpoints de la API ---
 
 export const getProducts = (params) => api.get('/api/v1/inventory/products', { params });
 export const getProductById = (id) => api.get(`/api/v1/inventory/products/${id}`);
@@ -59,5 +49,11 @@ export const createCustomer = (customer) => api.post('/api/v1/sales/customers', 
 
 export const getStockMovements = (productId) => api.get(`/api/v1/inventory/stock-movements/product/${productId}`);
 export const adjustInventory = (data) => api.post('/api/v1/inventory/stock-movements/adjust', data);
+
+// --- ¡FUNCIÓN AÑADIDA! ---
+export const getWarehouses = () => api.get('/api/v1/inventory/warehouses');
+
+// Asumo que también necesitarás una función para crear transferencias
+export const createTransfer = (transferData) => api.post('/api/v1/inventory/stock-movements/transfer', transferData);
 
 export default api;
