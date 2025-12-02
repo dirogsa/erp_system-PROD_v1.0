@@ -28,9 +28,12 @@ export const getProductById = (id) => api.get(`/api/v1/inventory/products/${id}`
 export const createProduct = (product) => api.post('/api/v1/inventory/products', product);
 export const updateProduct = (id, product) => api.put(`/api/v1/inventory/products/${id}`, product);
 export const deleteProduct = (id) => api.delete(`/api/v1/inventory/products/${id}`);
+export const exportProducts = () => api.get('/api/v1/inventory/products/export/json'); // <-- AÑADIDO
+export const importProducts = (products) => api.post('/api/v1/inventory/products/import/json', products); // <-- AÑADIDO
 
 export const getSuppliers = () => api.get('/api/v1/purchasing/suppliers');
 export const createSupplier = (supplier) => api.post('/api/v1/purchasing/suppliers', supplier);
+export const updateSupplier = (id, supplier) => api.put(`/api/v1/purchasing/suppliers/${id}`, supplier);
 
 export const getPurchaseOrders = (params) => api.get('/api/v1/purchasing/orders', { params });
 export const createPurchaseOrder = (order) => api.post('/api/v1/purchasing/orders', order);
@@ -45,7 +48,7 @@ export const createSalesOrder = (order) => api.post('/api/v1/sales/orders', orde
 
 export const getSalesInvoices = () => api.get('/api/v1/sales/invoices');
 export const createSalesInvoice = (invoice) => api.post('/api/v1/sales/invoices', invoice);
-export const recordSalesPayment = (invoiceId) => api.post(`/api/v1/sales/invoices/${invoiceId}/pay`); // <-- AÑADIDO
+export const recordSalesPayment = (invoiceId) => api.post(`/api/v1/sales/invoices/${invoiceId}/pay`);
 
 export const getCustomers = () => api.get('/api/v1/sales/customers');
 export const createCustomer = (customer) => api.post('/api/v1/sales/customers', customer);

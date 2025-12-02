@@ -28,13 +28,40 @@ async def get_product(product_id: str):
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
+@router.put("/products/{product_id}", response_model=Product)
+async def update_product(product_id: str, product: Product):
+    update_data = product.dict(exclude_unset=True, exclude={"id"})
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    db_product = await Product.get(product_id)
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    await db_product.update({"$set": update_data})
+    updated_doc = await Product.get(product_id)
+    return updated_doc
+
 @router.delete("/products/{product_id}", status_code=204)
 async def delete_product(product_id: str):
     product = await Product.get(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     await product.delete()
-    return None # No se devuelve contenido en una respuesta 204
+    return None
+
+# --- Rutas para Importar/Exportar --- 
+@router.get("/products/export/json", response_model=List[Product])
+async def export_products():
+    return await Product.find_all().to_list()
+
+@router.post("/products/import/json")
+async def import_products(products: List[Product]):
+    created_count = 0
+    for product in products:
+        existing_product = await Product.find_one({"sku": product.sku})
+        if not existing_product:
+            await product.insert()
+            created_count += 1
+    return {"message": f"Successfully imported {created_count} new products."}
 
 # --- Rutas para Categorías (Categories) ---
 @router.post("/categories/", response_model=Category)
@@ -59,23 +86,15 @@ async def list_warehouses():
 # --- Rutas para Movimientos de Stock (StockMovements) ---
 @router.post("/stock-movements/", response_model=StockMovement)
 async def create_stock_movement(movement: StockMovement):
-    # Lógica para actualizar el stock_current del producto
     product = await Product.find_one({"sku": movement.product_sku})
     if not product:
         raise HTTPException(status_code=404, detail=f"Product with SKU {movement.product_sku} not found")
-
-    # Determinar si es un ingreso o una salida
-    # Los tipos que empiezan con 'LOSS' o son 'OUT' se consideran salidas.
     if movement.movement_type.value.startswith('LOSS') or movement.movement_type == MovementType.OUT:
         product.stock_current -= movement.quantity
-    # Los demás tipos ('IN', 'ADJUSTMENT', etc.) se consideran ingresos.
     else:
         product.stock_current += movement.quantity
-
-    # Guardar el movimiento y la actualización del producto
     await movement.insert()
     await product.save()
-    
     return movement
 
 @router.get("/stock-movements/", response_model=List[StockMovement])

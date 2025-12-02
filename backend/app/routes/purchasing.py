@@ -21,10 +21,29 @@ async def create_supplier(supplier: Supplier):
 async def list_suppliers():
     return await Supplier.find_all().to_list()
 
+# --- ¡NUEVA RUTA AÑADIDA! ---
+@router.put("/suppliers/{supplier_id}", response_model=Supplier)
+async def update_supplier(supplier_id: str, supplier: Supplier):
+    """
+    Actualiza los datos de un proveedor existente.
+    """
+    update_data = supplier.dict(exclude_unset=True, exclude={"id"})
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+
+    db_supplier = await Supplier.get(supplier_id)
+    if not db_supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    await db_supplier.update({"$set": update_data})
+    
+    updated_doc = await Supplier.get(supplier_id)
+    return updated_doc
+
 # --- Rutas para Órdenes de Compra (Orders) ---
 @router.post("/orders/", response_model=Order)
 async def create_purchase_order(order: Order):
-    # Lógica de numeración automática
     order.order_number = await get_next_document_number("OC", Order)
     await order.insert()
     return order
@@ -77,12 +96,8 @@ async def create_purchase_invoice(invoice: Invoice):
 async def list_purchase_invoices():
     return await Invoice.find_all().to_list()
 
-# --- ¡NUEVA RUTA AÑADIDA! ---
 @router.post("/invoices/{invoice_id}/pay", response_model=Invoice)
 async def record_purchase_payment(invoice_id: str):
-    """
-    Registra el pago de una factura de compra.
-    """
     invoice = await Invoice.get(invoice_id)
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -90,8 +105,6 @@ async def record_purchase_payment(invoice_id: str):
     if invoice.payment_status == PaymentStatus.PAID:
         raise HTTPException(status_code=400, detail="Invoice is already paid")
 
-    # Aquí se podría añadir lógica más compleja (pagos parciales, etc.)
-    # Por ahora, simplemente la marcamos como pagada.
     invoice.payment_status = PaymentStatus.PAID
     await invoice.save()
     return invoice
