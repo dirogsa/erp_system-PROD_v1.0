@@ -1,101 +1,68 @@
 import React, { useState, useEffect } from 'react';
-import { getProductHistory } from '../../../services/api';
+// CORRECCIÓN: Se importa getStockMovements en lugar de la función inexistente
+import { getStockMovements } from '../../../services/api';
 import Table from '../../common/Table';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
 
-const ProductHistoryModal = ({ sku, productName, visible, onClose }) => {
-    const [history, setHistory] = useState([]);
-    const [loading, setLoading] = useState(false);
+// Componente para mostrar el historial de un producto en un modal
+const ProductHistoryModal = ({ productId, onClose }) => {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    useEffect(() => {
-        if (visible && sku) {
-            fetchHistory();
-        }
-    }, [visible, sku]);
-
-    const fetchHistory = async () => {
-        setLoading(true);
+  useEffect(() => {
+    if (productId) {
+      const fetchHistory = async () => {
         try {
-            const response = await getProductHistory(sku);
-            setHistory(response.data);
-        } catch (error) {
-            console.error("Error fetching product history:", error);
+          setLoading(true);
+          // Usamos la función correcta que ya existe
+          const response = await getStockMovements(productId);
+          setHistory(response.data);
+          setError('');
+        } catch (err) {
+          setError('Error al cargar el historial del producto.');
+          console.error(err);
         } finally {
-            setLoading(false);
+          setLoading(false);
         }
-    };
+      };
+      fetchHistory();
+    }
+  }, [productId]);
 
-    if (!visible) return null;
+  const columns = [
+    { Header: 'Fecha', accessor: 'timestamp', Cell: ({ value }) => formatDate(value) },
+    { Header: 'Tipo', accessor: 'movement_type' },
+    { Header: 'Cantidad', accessor: 'quantity' },
+    { Header: 'Referencia', accessor: 'reference_document' },
+  ];
 
-    const columns = [
-        { label: 'Fecha', key: 'date', render: (val) => formatDate(val) },
-        { label: 'Cliente', key: 'customer_name' },
-        { label: 'Cant.', key: 'quantity', align: 'center' },
-        { label: 'Precio Unit.', key: 'unit_price', align: 'right', render: (val) => formatCurrency(val) }
-    ];
-
-    return (
-        <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000,
-            padding: '2rem'
-        }}>
-            <div style={{
-                backgroundColor: '#0f172a',
-                borderRadius: '0.5rem',
-                width: '100%',
-                maxWidth: '600px',
-                maxHeight: '80vh',
-                overflowY: 'auto',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                border: '1px solid #334155'
-            }}>
-                <div style={{
-                    padding: '1.5rem',
-                    borderBottom: '1px solid #334155',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                }}>
-                    <div>
-                        <h3 style={{ color: 'white', margin: 0, fontSize: '1.1rem' }}>Historial de Ventas</h3>
-                        <p style={{ color: '#94a3b8', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-                            {productName} ({sku})
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#94a3b8',
-                            fontSize: '1.5rem',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        ×
-                    </button>
-                </div>
-
-                <div style={{ padding: '1.5rem' }}>
-                    <Table
-                        columns={columns}
-                        data={history}
-                        loading={loading}
-                        emptyMessage="No hay ventas registradas para este producto"
-                    />
-                </div>
-            </div>
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-20 mx-auto p-5 border w-1/2 shadow-lg rounded-md bg-white">
+        <div className="mt-3 text-center">
+          <h3 className="text-lg leading-6 font-medium text-gray-900">Historial del Producto</h3>
+          <div className="mt-2 px-7 py-3">
+            {loading ? (
+              <p>Cargando...</p>
+            ) : error ? (
+              <p className="text-red-500">{error}</p>
+            ) : (
+              <Table columns={columns} data={history} />
+            )}
+          </div>
+          <div className="items-center px-4 py-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default ProductHistoryModal;
