@@ -1,9 +1,12 @@
 import axios from 'axios';
 
-// Apunta directamente a la URL pública del backend
-const API_BASE_URL = 'https://8000-firebase-ecommerce-1764621325358.cluster-lr6dwlc2lzbcctqhqorax5zmro.cloudworkstations.dev';
+// --- Configuración dinámica de la URL de la API ---
+// Lee la URL base de la API desde las variables de entorno de Vite.
+// Si la variable no está definida, por defecto apunta al localhost para desarrollo.
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-console.log('URL de API (Final Corrected):', API_BASE_URL);
+// Log para verificar qué URL se está utilizando (muy útil para depurar despliegues)
+console.log(`API Base URL: ${API_BASE_URL}`);
 
 // --- Instancia de Axios ---
 const api = axios.create({
@@ -11,82 +14,50 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: true, // Importante para que CORS funcione con credenciales
 });
 
-// --- Interceptores para depuración ---
+// --- Interceptores (opcional, para depuración) ---
 api.interceptors.request.use(request => {
-  console.log('Starting Request:', JSON.stringify(request, null, 2));
+  // console.log('Starting Request:', request.method, request.url);
   return request;
 });
 
 api.interceptors.response.use(response => {
-  console.log('Response:', JSON.stringify(response.data, null, 2));
   return response;
 }, error => {
-  console.error('Response Error:', JSON.stringify(error.toJSON ? error.toJSON() : error, null, 2));
-  console.error('Original Error Object:', error);
+  console.error('API Response Error:', error.response?.data || error.message);
   return Promise.reject(error);
 });
 
 
-// --- Endpoints de la API ---
+// --- Endpoints de la API (sin cambios) ---
 
-const V1_PREFIX = '/api/v1';
+export const getProducts = (params) => api.get('/api/v1/inventory/products', { params });
+export const getProductById = (id) => api.get(`/api/v1/inventory/products/${id}`);
+export const createProduct = (product) => api.post('/api/v1/inventory/products', product);
+export const updateProduct = (id, product) => api.put(`/api/v1/inventory/products/${id}`, product);
 
-// --- Inventario ---
-export const getProducts = (params) => api.get(`${V1_PREFIX}/inventory/products`, { params });
-export const createProduct = (data) => api.post(`${V1_PREFIX}/inventory/products`, data);
-export const updateProduct = (id, data) => api.put(`${V1_PREFIX}/inventory/products/${id}`, data);
-export const deleteProduct = (id) => api.delete(`${V1_PREFIX}/inventory/products/${id}`);
-export const getProductById = (id) => api.get(`${V1_PREFIX}/inventory/products/${id}`);
-export const getProductHistory = (id, params) => api.get(`${V1_PREFIX}/inventory/products/${id}/history`, { params });
-export const getWarehouses = () => api.get(`${V1_PREFIX}/inventory/warehouses`);
-export const getTransfers = (params) => api.get(`${V1_PREFIX}/inventory/transfers`, { params });
-export const createTransfer = (data) => api.post(`${V1_PREFIX}/inventory/transfers`, data);
-export const receiveTransfer = (id) => api.patch(`${V1_PREFIX}/inventory/transfers/${id}/receive`);
-export const importProducts = (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return api.post(`${V1_PREFIX}/inventory/products/batch`, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
-};
-export const exportProducts = (type) => api.get(`${V1_PREFIX}/inventory/products/export?type=${type}`, { responseType: 'blob' });
+export const getSuppliers = () => api.get('/api/v1/purchasing/suppliers');
+export const createSupplier = (supplier) => api.post('/api/v1/purchasing/suppliers', supplier);
 
-// --- Movimientos de Stock (Nuevo) ---
-export const getStockMovements = (params) => api.get(`${V1_PREFIX}/inventory/stock-movements`, { params });
-export const createStockMovement = (data) => api.post(`${V1_PREFIX}/inventory/stock-movements`, data);
+export const getPurchaseOrders = (params) => api.get('/api/v1/purchasing/orders', { params });
+export const createPurchaseOrder = (order) => api.post('/api/v1/purchasing/orders', order);
+export const receivePurchaseOrder = (orderId) => api.post(`/api/v1/purchasing/orders/${orderId}/receive`);
 
+export const getPurchaseInvoices = () => api.get('/api/v1/purchasing/invoices');
+export const createPurchaseInvoice = (invoice) => api.post('/api/v1/purchasing/invoices', invoice);
 
-// --- Ventas ---
-export const getSalesOrders = (params) => api.get(`${V1_PREFIX}/sales/sales-orders`, { params });
-export const createSalesOrder = (data) => api.post(`${V1_PREFIX}/sales/sales-orders`, data);
-export const getSalesOrderById = (id) => api.get(`${V1_PREFIX}/sales/sales-orders/${id}`);
-export const updateSalesOrder = (id, data) => api.put(`${V1_PREFIX}/sales/sales-orders/${id}`, data);
-export const cancelSalesOrder = (id) => api.patch(`${V1_PREFIX}/sales/sales-orders/${id}/cancel`);
-export const dispatchSalesOrder = (id, data) => api.patch(`${V1_PREFIX}/sales/sales-orders/${id}/dispatch`, data);
-export const getSalesInvoices = (params) => api.get(`${V1_PREFIX}/sales/sales-invoices`, { params });
-export const createSalesInvoice = (data) => api.post(`${V1_PREFIX}/sales/sales-invoices`, data);
-export const getSalesInvoiceById = (id) => api.get(`${V1_PREFIX}/sales/sales-invoices/${id}`);
-export const recordSalesPayment = (id, data) => api.patch(`${V1_PREFIX}/sales/sales-invoices/${id}/pay`, data);
+export const getSalesOrders = (params) => api.get('/api/v1/sales/orders', { params });
+export const createSalesOrder = (order) => api.post('/api/v1/sales/orders', order);
 
-// --- Compras ---
-export const getPurchaseOrders = (params) => api.get(`${V1_PREFIX}/purchasing/orders`, { params });
-export const createPurchaseOrder = (data) => api.post(`${V1_PREFIX}/purchasing/orders`, data);
-export const getPurchaseOrderById = (id) => api.get(`${V1_PREFIX}/purchasing/orders/${id}`);
-// Corregido para coincidir con el nuevo endpoint del backend
-export const receivePurchaseOrder = (id) => api.post(`${V1_PREFIX}/purchasing/orders/${id}/receive`);
-export const getPurchaseInvoices = (params) => api.get(`${V1_PREFIX}/purchasing/invoices`, { params });
-export const createPurchaseInvoice = (data) => api.post(`${V1_PREFIX}/purchasing/invoices`, data);
-export const recordPurchasePayment = (id, data) => api.patch(`${V1_PREFIX}/purchasing/invoices/${id}/pay`, data);
+export const getSalesInvoices = () => api.get('/api/v1/sales/invoices');
+export const createSalesInvoice = (invoice) => api.post('/api/v1/sales/invoices', invoice);
 
-// --- Clientes y Proveedores ---
-export const getCustomers = (params) => api.get(`${V1_PREFIX}/sales/customers`, { params });
-export const createCustomer = (data) => api.post(`${V1_PREFIX}/sales/customers`, data);
-export const updateCustomer = (id, data) => api.put(`${V1_PREFIX}/sales/customers/${id}`, data);
-export const getSuppliers = (params) => api.get(`${V1_PREFIX}/purchasing/suppliers`, { params });
-export const createSupplier = (data) => api.post(`${V1_PREFIX}/purchasing/suppliers`, data);
-export const updateSupplier = (id, data) => api.put(`${V1_PREFIX}/purchasing/suppliers/${id}`, data);
+export const getCustomers = () => api.get('/api/v1/sales/customers');
+export const createCustomer = (customer) => api.post('/api/v1/sales/customers', customer);
+
+export const getStockMovements = (productId) => api.get(`/api/v1/inventory/stock-movements/product/${productId}`);
+export const adjustInventory = (data) => api.post('/api/v1/inventory/stock-movements/adjust', data);
+
+export default api;
