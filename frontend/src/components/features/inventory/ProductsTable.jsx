@@ -9,7 +9,8 @@ const ProductsTable = ({
     loading = false,
     onView,
     onEdit,
-    onDelete
+    onDelete,
+    paginationComponent // <--- Nueva prop
 }) => {
     const columns = [
         {
@@ -72,12 +73,15 @@ const ProductsTable = ({
     ];
 
     return (
-        <Table
-            columns={columns}
-            data={products}
-            loading={loading}
-            emptyMessage="No hay productos registrados"
-        />
+        <>
+            <Table
+                columns={columns}
+                data={products}
+                loading={loading}
+                emptyMessage="No hay productos registrados"
+            />
+            {paginationComponent && <div style={{ marginTop: '1rem' }}>{paginationComponent}</div>}
+        </>
     );
 };
 

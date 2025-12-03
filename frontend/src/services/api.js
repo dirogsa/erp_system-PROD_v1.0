@@ -14,17 +14,27 @@ const api = axios.create({
 });
 
 // --- Interceptores ---
-api.interceptors.request.use(request => request);
-api.interceptors.response.use(response => response, error => {
-  console.error('API Response Error:', error.response?.data || error.message);
-  return Promise.reject(error);
-});
+// CORRECCIÓN: El interceptor de respuesta debe devolver `response.data`
+// para que React Query reciba directamente el JSON de la API.
+api.interceptors.response.use(
+  response => response.data, 
+  error => {
+    console.error('API Response Error:', error.response?.data || error.message);
+    return Promise.reject(error);
+  }
+);
 
 
-// --- Endpoints de la API (con /api/v1 y trailing slashes corregidos) ---
+// --- Endpoints de la API ---
 
 // Inventory
-export const getProducts = (params) => api.get('/api/v1/inventory/products/', { params });
+export const getProducts = (page, limit, search) => {
+    const params = { page, limit };
+    if (search) {
+        params.search = search;
+    }
+    return api.get('/api/v1/inventory/products/', { params });
+};
 export const getProductById = (id) => api.get(`/api/v1/inventory/products/${id}`);
 export const createProduct = (product) => api.post('/api/v1/inventory/products/', product);
 export const updateProduct = (sku, product) => api.put(`/api/v1/inventory/products/${sku}`, product);
@@ -47,14 +57,14 @@ export const updateSupplier = (id, supplier) => api.put(`/api/v1/purchasing/supp
 export const getPurchaseOrders = (params) => api.get('/api/v1/purchasing/orders/', { params });
 export const createPurchaseOrder = (order) => api.post('/api/v1/purchasing/orders/', order);
 export const receivePurchaseOrder = (orderId) => api.post(`/api/v1/purchasing/orders/${orderId}/receive`);
-export const getPurchaseInvoices = (params) => api.get('/api/v1/purchasing/invoices/', { params }); // Added params
+export const getPurchaseInvoices = (params) => api.get('/api/v1/purchasing/invoices/', { params });
 export const createPurchaseInvoice = (invoice) => api.post('/api/v1/purchasing/invoices/', invoice);
 export const recordPurchasePayment = (invoiceId) => api.post(`/api/v1/purchasing/invoices/${invoiceId}/pay`);
 
 // Sales
 export const getSalesOrders = (params) => api.get('/api/v1/sales/orders/', { params });
 export const createSalesOrder = (order) => api.post('/api/v1/sales/orders/', order);
-export const getSalesInvoices = (params) => api.get('/api/v1/sales/invoices/', { params }); // Added params
+export const getSalesInvoices = (params) => api.get('/api/v1/sales/invoices/', { params });
 export const createSalesInvoice = (invoice) => api.post('/api/v1/sales/invoices/', invoice);
 export const recordSalesPayment = (invoiceId) => api.post(`/api/v1/sales/invoices/${invoiceId}/pay`);
 export const getCustomers = () => api.get('/api/v1/sales/customers/');

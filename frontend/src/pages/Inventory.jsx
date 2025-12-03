@@ -24,16 +24,18 @@ const Inventory = () => {
     const queryClient = useQueryClient();
     const { showNotification } = useNotification();
 
-    const { products, total, isLoading, error } = useProducts(page, limit, search);
+    const queryKey = ['products', page, limit, search];
+    const { data: productsData, isLoading, error } = useProducts(page, limit, search);
 
-    // Calculate total pages
+    const products = productsData?.items || [];
+    const total = productsData?.total || 0;
     const totalPages = Math.ceil(total / limit);
 
     const createMutation = useMutation({
         mutationFn: (newProductData) => createProduct(newProductData),
         onSuccess: () => {
             showNotification('Producto creado con éxito', 'success');
-            queryClient.invalidateQueries(['products']);
+            queryClient.invalidateQueries(queryKey);
             setShowProductModal(false);
         },
         onError: (err) => {
@@ -45,7 +47,7 @@ const Inventory = () => {
         mutationFn: ({ sku, data }) => updateProduct(sku, data),
         onSuccess: () => {
             showNotification('Producto actualizado con éxito', 'success');
-            queryClient.invalidateQueries(['products']);
+            queryClient.invalidateQueries(queryKey);
             setShowProductModal(false);
             setSelectedProduct(null);
         },
@@ -58,7 +60,7 @@ const Inventory = () => {
         mutationFn: (sku) => deleteProduct(sku),
         onSuccess: () => {
             showNotification('Producto eliminado con éxito', 'success');
-            queryClient.invalidateQueries(['products']);
+            queryClient.invalidateQueries(queryKey);
         },
         onError: (err) => {
             showNotification(err.response?.data?.detail || 'Error al eliminar el producto', 'error');
@@ -176,17 +178,18 @@ const Inventory = () => {
                             setShowProductModal(true);
                         }}
                         onDelete={handleDelete}
-                    />
-
-                    <Pagination
-                        current={page}
-                        total={totalPages} // Corrected: Pass totalPages instead of total
-                        onChange={setPage}
-                        pageSize={limit}
-                        onPageSizeChange={(newSize) => {
-                            setLimit(newSize);
-                            setPage(1);
-                        }}
+                        paginationComponent={
+                            <Pagination
+                                current={page}
+                                totalPages={totalPages} // <-- CORRECCIÓN FINAL
+                                onChange={setPage}
+                                pageSize={limit}
+                                onPageSizeChange={(newSize) => {
+                                    setLimit(newSize);
+                                    setPage(1);
+                                }}
+                            />
+                        }
                     />
                 </>
             )}

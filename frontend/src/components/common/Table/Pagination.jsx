@@ -1,36 +1,34 @@
 import React from 'react';
 import Button from '../Button';
 
-const Pagination = ({ current, total, onChange, pageSize, onPageSizeChange }) => {
-    const totalPages = Math.ceil(total / pageSize);
+// CORRECCIÓN: La prop 'total' se renombró a 'totalPages' para mayor claridad.
+const Pagination = ({ current, totalPages, onChange, pageSize, onPageSizeChange }) => {
 
+    // BUG FIX: Se eliminó el cálculo incorrecto de totalPages.
+    // const totalPages = Math.ceil(total / pageSize); // <-- ESTA ERA LA LÍNEA DEL BUG
+
+    // El componente no se renderiza si hay solo una página o menos.
     if (totalPages <= 1) {
         return null;
     }
 
     const getPageNumbers = () => {
         const pages = [];
-        const maxVisible = 5;
+        const maxVisible = 5; // Máximo de botones de página a mostrar
 
         if (totalPages <= maxVisible) {
-            for (let i = 1; i <= totalPages; i++) pages.push(i);
+            // Si el total de páginas es pequeño, se muestran todas
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
         } else {
+            // Si hay muchas páginas, se muestra una vista condensada con "..."
             if (current <= 3) {
-                for (let i = 1; i <= 4; i++) pages.push(i);
-                pages.push('...');
-                pages.push(totalPages);
+                pages.push(1, 2, 3, 4, '...', totalPages);
             } else if (current >= totalPages - 2) {
-                pages.push(1);
-                pages.push('...');
-                for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+                pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
             } else {
-                pages.push(1);
-                pages.push('...');
-                pages.push(current - 1);
-                pages.push(current);
-                pages.push(current + 1);
-                pages.push('...');
-                pages.push(totalPages);
+                pages.push(1, '...', current - 1, current, current + 1, '...', totalPages);
             }
         }
         return pages;
@@ -88,9 +86,10 @@ const Pagination = ({ current, total, onChange, pageSize, onPageSizeChange }) =>
                         style={{
                             backgroundColor: page === current ? '#3b82f6' : 'transparent',
                             color: page === current ? 'white' : '#94a3b8',
-                            border: page === current ? 'none' : '1px solid #334155',
+                            border: '1px solid #334155',
                             borderRadius: '0.25rem',
                             padding: '0.25rem 0.75rem',
+                            minWidth: '2.5rem',
                             cursor: page === '...' ? 'default' : 'pointer',
                             transition: 'all 0.2s'
                         }}

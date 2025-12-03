@@ -1,41 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
 import { getProducts } from '../services/api';
-import { useNotification } from './useNotification';
 
-export const useProducts = (page = 1, limit = 10, search = '') => {
-    const { showNotification } = useNotification();
-
-    const {
-        data,
-        isLoading,
-        error,
-        refetch
-    } = useQuery({
-        queryKey: ['products', { page, limit, search }],
+/**
+ * Hook para obtener productos paginados desde la API.
+ * @param {number} page - El número de página a solicitar.
+ * @param {number} limit - El número de items por página.
+ * @param {string} search - El término de búsqueda.
+ * @returns El resultado de la consulta de React Query.
+ */
+export const useProducts = (page, limit, search) => {
+    return useQuery({
+        // La clave de consulta identifica unívocamente esta solicitud de datos
+        queryKey: ['products', page, limit, search],
+        
+        // La función que se ejecutará para obtener los datos
         queryFn: async () => {
-            try {
-                // Se llama a la función directamente
-                const response = await getProducts({ page, limit, search });
-                console.log('Products API Response:', response.data);
-                return response.data;
-            } catch (err) {
-                console.error('Error fetching products:', err);
-                throw err;
-            }
+            const data = await getProducts(page, limit, search);
+            console.log('Products API Response:', data); // Log para depuración
+            return data;
         },
+        
+        // Mantiene los datos anteriores visibles mientras se cargan los nuevos,
+        // lo que evita parpadeos en la interfaz al paginar.
         keepPreviousData: true,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        onError: (err) => {
-            console.error('React Query Error:', err);
-            showNotification('Error al cargar productos', 'error');
-        }
     });
-
-    return {
-        products: data?.items || [],
-        total: data?.total || 0,
-        isLoading,
-        error,
-        refetch
-    };
 };
