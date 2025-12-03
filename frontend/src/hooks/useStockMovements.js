@@ -1,25 +1,34 @@
 import { useQuery } from '@tanstack/react-query';
-import { getStockMovements } from '../services/api';
+import { getStockMovements, getStockMovementsByProduct } from '../services/api';
 
 export const useStockMovements = (page, limit, filters) => {
-    const queryKey = ['stockMovements', page, limit, filters];
+    const { product_sku, ...otherFilters } = filters || {};
+
+    const queryKey = product_sku
+        ? ['stockMovements', product_sku, page, limit]
+        : ['stockMovements', page, limit, otherFilters];
 
     const { data, isLoading, error, refetch } = useQuery({
         queryKey,
         queryFn: async () => {
-            const params = { page, limit, ...filters };
-            console.log("[useStockMovements] Fetching data with params:", params);
+            console.log("[useStockMovements] Fetching data with params:", { page, limit, filters });
             try {
-                const response = await getStockMovements(params);
-                console.log("[useStockMovements] Raw API Response:", response);
-
-                // Defensive Check 1: Ensure response structure is valid
-                if (!response || !response.data || !Array.isArray(response.data.items)) {
-                    console.error("[useStockMovements] Invalid API response structure.", response);
-                    return { items: [], total: 0 }; // Return a safe, empty default
+                let response;
+                if (product_sku) {
+                    const params = { page, limit };
+                    response = await getStockMovementsByProduct(product_sku, params);
+                } else {
+                    const params = { page, limit, ...otherFilters };
+                    response = await getStockMovements(params);
                 }
 
-                // Defensive Check 2: Filter out any null or undefined items in the array
+                console.log("[useStockMovements] Raw API Response:", response);
+
+                if (!response || !response.data || !Array.isArray(response.data.items)) {
+                    console.error("[useStockMovements] Invalid API response structure.", response);
+                    return { items: [], total: 0 };
+                }
+
                 const rawItems = response.data.items;
                 const filteredItems = rawItems.filter(item => item != null);
 
@@ -34,15 +43,14 @@ export const useStockMovements = (page, limit, filters) => {
                     total: response.data.total || 0
                 };
             } catch (apiError) {
-                console.error("[useStockMovements] API call to getStockMovements failed:", apiError);
-                throw apiError; // Re-throw to let react-query handle the error state
+                console.error("[useStockMovements] API call failed:", apiError);
+                throw apiError;
             }
         },
         keepPreviousData: true,
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
 
-    // Final check before returning data to the component
     const movements = data?.items || [];
     const total = data?.total || 0;
 

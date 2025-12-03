@@ -44,6 +44,19 @@ export const formatStatus = (status) => {
     return statusMap[status] || status;
 };
 
+// Nueva función para obtener la variante del estado de pago
+export const getPaymentStatusVariant = (status) => {
+    switch (status) {
+        case 'PAID':
+            return 'success';
+        case 'PARTIAL':
+            return 'warning';
+        case 'PENDING':
+        default:
+            return 'error';
+    }
+};
+
 // Formateo de RUC
 export const formatRUC = (ruc) => {
     if (!ruc) return '';

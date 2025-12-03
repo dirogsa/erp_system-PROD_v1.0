@@ -1,42 +1,9 @@
-import React, { useState } from 'react';
-import { useStockMovements } from '../../../hooks/useStockMovements';
-import Table from '../../common/Table';
-import Pagination from '../../common/Table/Pagination';
+import React from 'react';
 import ImageWithFallback from '../../common/ImageWithFallback';
-import { format } from 'date-fns';
+import StockMovementsSection from './StockMovementsSection'; 
 import { formatCurrency } from '../../../utils/formatters';
 
 const ProductDetailModal = ({ product, onClose }) => {
-    const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(5); // Smaller limit for a modal view
-
-    const { movements, total, isLoading } = useStockMovements(page, limit, { product_sku: product.sku });
-
-    const movementColumns = [
-        {
-            label: 'Fecha',
-            key: 'date',
-            render: (item) => format(new Date(item.date), 'dd/MM/yyyy HH:mm')
-        },
-        {
-            label: 'Tipo',
-            key: 'movement_type',
-            render: (item) => (
-                <span style={{
-                    color: ['SALE', 'LOSS', 'TRANSFER_OUT'].includes(item.movement_type) ? '#f87171' : '#4ade80',
-                    fontWeight: 'bold'
-                }}>
-                    {item.movement_type}
-                </span>
-            )
-        },
-        { label: 'Cantidad', key: 'quantity', align: 'center' },
-        {
-            label: 'Documento Ref.',
-            key: 'reference_document',
-            render: (item) => item.reference_document || 'No Aplica'
-        },
-    ];
 
     return (
         <div style={{
@@ -94,22 +61,7 @@ const ProductDetailModal = ({ product, onClose }) => {
                     {/* Movements Section */}
                     <div>
                         <h4 style={{ color: 'white', marginBottom: '1rem', borderTop: '1px solid #334155', paddingTop: '1.5rem' }}>Historial de Movimientos</h4>
-                        <Table
-                            columns={movementColumns}
-                            data={movements}
-                            loading={isLoading}
-                            emptyMessage="No se han registrado movimientos para este producto."
-                        />
-                        <Pagination
-                            current={page}
-                            total={total}
-                            pageSize={limit}
-                            onChange={setPage}
-                            onPageSizeChange={(newSize) => {
-                                setLimit(newSize);
-                                setPage(1);
-                            }}
-                        />
+                        <StockMovementsSection productSku={product.sku} />
                     </div>
                 </div>
             </div>

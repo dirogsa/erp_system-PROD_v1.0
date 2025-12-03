@@ -35,7 +35,6 @@ async def create_product(product_data: ProductCreate):
             movement_type=MovementType.ADJUSTMENT,
             notes="Stock inicial",
             created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
             reference_document="N/A"
         )
         await movement.insert()
@@ -150,10 +149,27 @@ async def create_stock_movement(movement: StockMovement):
     await product.save()
     return movement
 
-@router.get("/stock-movements/product/{product_sku}", response_model=List[StockMovement])
-async def list_stock_movements_by_product(product_sku: str):
-    movements = await StockMovement.find({"product_sku": product_sku}).to_list()
-    return jsonable_encoder(movements)
+@router.get("/stock-movements/product/{product_sku}/history", response_model=PaginatedStockMovements)
+async def get_stock_movements_for_product(
+    product_sku: str,
+    page: int = 1,
+    limit: int = 5,
+):
+    """
+    Retrieves a paginated history of stock movements for a specific product.
+    """
+    query = {"product_sku": product_sku}
+    
+    skip = (page - 1) * limit
+    
+    movements_cursor = StockMovement.find(query).sort(-StockMovement.created_at).skip(skip).limit(limit)
+    movements = await movements_cursor.to_list()
+    
+    # Get the total count of movements for the given product
+    total = await StockMovement.find(query).count()
+    
+    return {"items": jsonable_encoder(movements), "total": total}
+
 
 @router.get("/stock-movements/", response_model=PaginatedStockMovements)
 async def list_stock_movements(
@@ -166,7 +182,7 @@ async def list_stock_movements(
         query["product_sku"] = {"$regex": product_sku, "$options": "i"}
 
     skip = (page - 1) * limit
-    movements_cursor = StockMovement.find(query).skip(skip).limit(limit)
+    movements_cursor = StockMovement.find(query).sort(-StockMovement.created_at).skip(skip).limit(limit)
     movements = await movements_cursor.to_list()
     
     total = await StockMovement.find(query).count()

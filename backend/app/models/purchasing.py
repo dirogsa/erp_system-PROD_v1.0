@@ -73,11 +73,55 @@ class Invoice(Document):
     payments: List[Payment] = []
     reception_status: str = "NOT_RECEIVED"
     guide_id: Optional[str] = None
+    debit_note_ids: List[str] = []
+    debit_applied: float = 0.0
 
-    @field_validator('total_amount', 'amount_paid')
+    @field_validator('total_amount', 'amount_paid', 'debit_applied')
     @classmethod
     def round_amounts(cls, v):
         return round(v, 3) if v is not None else v
 
     class Settings:
         name = "purchase_invoices"
+
+# --- New Models for Debit Notes ---
+
+class DebitNoteReason(str, Enum):
+    RETURN = "RETURN"
+    PRICE_CORRECTION = "PRICE_CORRECTION"
+    OTHER = "OTHER"
+
+class DebitNoteStatus(str, Enum):
+    DRAFT = "DRAFT"
+    APPLIED = "APPLIED"
+    CANCELLED = "CANCELLED"
+
+class DebitNoteItem(BaseModel):
+    product_sku: str
+    quantity: int
+    unit_cost: float
+    reason: Optional[str] = None
+
+    @field_validator('unit_cost')
+    @classmethod
+    def round_cost(cls, v):
+        return round(v, 3) if v is not None else v
+
+class DebitNote(Document):
+    debit_note_number: Indexed(str, unique=True)
+    purchase_invoice_id: str
+    supplier_id: str
+    date: datetime = Field(default_factory=datetime.now)
+    reason: DebitNoteReason
+    status: DebitNoteStatus = DebitNoteStatus.DRAFT
+    items: List[DebitNoteItem]
+    total_amount: float
+    notes: Optional[str] = None
+
+    @field_validator('total_amount')
+    @classmethod
+    def round_total(cls, v):
+        return round(v, 3)
+
+    class Settings:
+        name = "purchase_debit_notes"

@@ -1,20 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
 // Se importan las funciones correctas
 import { getSalesInvoices, createSalesInvoice, recordSalesPayment } from '../services/api';
-import { useNotification } from './useNotification';
+import { useNotification } from './useNotification'; // Corrected import path
 
-export const useSalesInvoices = () => {
+export const useSalesInvoices = ({ page = 1, limit = 10, search = '', status = '', date_from = '', date_to = '' } = {}) => {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const { showNotification } = useNotification();
+    const { showNotification } = useNotification(); // Corrected hook name
 
     const fetchInvoices = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            // Se usa la función correcta
-            const response = await getSalesInvoices();
+            // Clean up parameters, only send them if they have a value
+            const params = { page, limit };
+            if (search) params.search = search;
+            if (status) params.status = status;
+            if (date_from) params.date_from = date_from;
+            if (date_to) params.date_to = date_to;
+
+            // Se usa la función correcta con los parámetros limpios
+            const response = await getSalesInvoices(params);
             setInvoices(response.data.items || []);
         } catch (err) {
             setError(err);
@@ -23,7 +30,7 @@ export const useSalesInvoices = () => {
         } finally {
             setLoading(false);
         }
-    }, [showNotification]);
+    }, [showNotification, page, limit, search, status, date_from, date_to]);
 
     const addInvoice = useCallback(async (invoiceData) => {
         setLoading(true);
@@ -65,8 +72,6 @@ export const useSalesInvoices = () => {
             setLoading(false);
         }
     }, [fetchInvoices, showNotification]);
-
-    // NOTA: La función createDispatchGuide no existe en el api.js actual.
 
     useEffect(() => {
         fetchInvoices();

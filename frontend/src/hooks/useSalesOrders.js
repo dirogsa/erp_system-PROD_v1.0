@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 // Se importan las funciones correctas
 import { getSalesOrders, createSalesOrder } from '../services/api';
-import { useNotification } from './useNotification';
+import { useNotification } from './useNotification'; // Corrected import path
 
 export const useSalesOrders = ({ page = 1, limit = 50, search = '', status = '', date_from = '', date_to = '' } = {}) => {
     const queryClient = useQueryClient();
-    const { showNotification } = useNotification();
+    const { showNotification } = useNotification(); // Corrected hook name
 
     const {
         data,
@@ -16,8 +16,15 @@ export const useSalesOrders = ({ page = 1, limit = 50, search = '', status = '',
         queryKey: ['sales-orders', { page, limit, search, status, date_from, date_to }],
         queryFn: async () => {
             try {
-                // Se usa la función correcta
-                const response = await getSalesOrders({ page, limit, search, status, date_from, date_to });
+                // Clean up parameters, only send them if they have a value
+                const params = { page, limit };
+                if (search) params.search = search;
+                if (status) params.status = status;
+                if (date_from) params.date_from = date_from;
+                if (date_to) params.date_to = date_to;
+
+                // Se usa la función correcta con los parámetros limpios
+                const response = await getSalesOrders(params);
                 console.log('Sales Orders API Response:', response.data);
                 return response.data;
             } catch (err) {

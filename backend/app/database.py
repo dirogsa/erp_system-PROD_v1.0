@@ -1,3 +1,4 @@
+
 import motor.motor_asyncio
 from beanie import init_beanie
 from app.config import MONGODB_URI, MONGO_DB_NAME
@@ -15,19 +16,18 @@ async def init_db():
     from app.models.inventory import Product, Category, Warehouse, StockMovement, ProductHistory
     
     # --- Modelos de Compras ---
-    from app.models.purchasing import Supplier, Order, Invoice
+    from app.models.purchasing import Supplier, Order, Invoice, DebitNote
     
-    # --- Modelos de Ventas (Ajustado) ---
-    # SalesOrderDetail y SalesPayment son BaseModels, no Documents.
-    from app.models.sales import Customer, SalesOrder, SalesInvoice
+    # --- Modelos de Ventas ---
+    from app.models.sales import Customer, SalesOrder, SalesInvoice, CreditNote
 
     document_models = [
         # Inventario
         Product, Category, Warehouse, StockMovement, ProductHistory,
         # Compras
-        Supplier, Order, Invoice,
-        # Ventas (Ajustado)
-        Customer, SalesOrder, SalesInvoice,
+        Supplier, Order, Invoice, DebitNote, # DebitNote was missing
+        # Ventas
+        Customer, SalesOrder, SalesInvoice, CreditNote, # CreditNote was missing
     ]
 
     await init_beanie(database=database, document_models=document_models)

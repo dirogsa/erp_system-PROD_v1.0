@@ -1,41 +1,51 @@
+from beanie import Document, Indexed
+from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.errors import DuplicateKeyError
+import asyncio
 
-from datetime import datetime
-from beanie import Document
-from typing import Type
+class DocumentSequence(Document):
+    name: Indexed(str, unique=True)
+    sequence: int = 0
 
-async def get_next_document_number(prefix: str, model: Type[Document]) -> str:
-    """
-    Genera el siguiente número de documento secuencial para un modelo y prefijo dados.
-    Formato: PREFIJO + AÑO(2d) + '-' + SECUENCIA(4d). Ej: FV24-0001
-    """
-    year = datetime.now().strftime("%y")
-    search_prefix = f"{prefix}{year}-"
+    class Settings:
+        name = "document_sequences"
 
-    # Determina el campo a buscar (ej: 'invoice_number', 'order_number')
-    # Asumimos una convención de nombres. Esto puede necesitar ajuste.
-    number_field = ""
-    if "Invoice" in model.__name__:
-        number_field = "invoice_number"
-    elif "Order" in model.__name__:
-        number_field = "order_number"
-    else:
-        # Fallback o error si el modelo no tiene un campo de número conocido
-        raise ValueError(f"El modelo {model.__name__} no tiene un campo de numeración estándar ('invoice_number' o 'order_number').")
+class DocumentNumberService:
+    def __init__(self, prefix: str, model_name: str):
+        self.prefix = prefix
+        self.model_name = model_name
 
-    # Encuentra el último documento del año actual para obtener la secuencia más alta
-    last_document = await model.find(
-        {number_field: {"$regex": f"^{search_prefix}"}}
-    ).sort(f"-{number_field}").limit(1).first_or_none()
+    async def get_next_number(self) -> str:
+        """
+        Generates the next number in a sequence for a given document type.
+        Example: "NC-00001"
+        """
+        sequence_doc = await DocumentSequence.find_one(DocumentSequence.name == self.model_name)
+        if not sequence_doc:
+            sequence_doc = DocumentSequence(name=self.model_name, sequence=0)
 
-    new_sequence = 1
-    if last_document:
-        last_number_str = getattr(last_document, number_field)
-        try:
-            last_sequence = int(last_number_str.split('-')[-1])
-            new_sequence = last_sequence + 1
-        except (ValueError, IndexError):
-            # En caso de que un número antiguo no siga el formato, empezamos de 1.
-            pass
-            
-    # Formatea el nuevo número de documento con 4 dígitos para la secuencia
-    return f"{search_prefix}{new_sequence:04d}"
+        # Atomically find and update the sequence
+        # This is a bit complex with beanie, so we drop to pymongo level for the update
+        client: AsyncIOMotorClient = DocumentSequence.get_motor_client()
+        collection = client[DocumentSequence.Settings.database][DocumentSequence.Settings.name]
+
+        result = await collection.find_one_and_update(
+            {"name": self.model_name},
+            {"$inc": {"sequence": 1}},
+            upsert=True,
+            return_document=True
+        )
+        
+        next_seq = result['sequence']
+        return f"{self.prefix}-{next_seq:05d}"
+
+# --- Specific Service Instances ---
+
+async def get_credit_note_number() -> str:
+    service = DocumentNumberService(prefix="NC", model_name="credit_note")
+    return await service.get_next_number()
+
+async def get_debit_note_number() -> str:
+    service = DocumentNumberService(prefix="ND", model_name="debit_note")
+    return await service.get_next_number()
+

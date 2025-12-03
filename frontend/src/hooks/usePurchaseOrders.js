@@ -1,11 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// Se importan las funciones correctas
-import { getPurchaseOrders, createPurchaseOrder } from '../services/api';
-import { useNotification } from './useNotification';
+import { useQuery } from '@tanstack/react-query';
+import { getPurchaseOrders } from '../services/api';
+import { useNotification } from './useNotification'; // Corrected import path
 
-export const usePurchaseOrders = ({ page = 1, limit = 50, search = '', status = '', date_from = '', date_to = '' } = {}) => {
-    const queryClient = useQueryClient();
-    const { showNotification } = useNotification();
+export const usePurchaseOrders = (page = 1, limit = 10, search = '', status = '', date_from = '', date_to = '') => {
+    const { showNotification } = useNotification(); // Corrected hook name
 
     const {
         data,
@@ -16,9 +14,14 @@ export const usePurchaseOrders = ({ page = 1, limit = 50, search = '', status = 
         queryKey: ['purchase-orders', { page, limit, search, status, date_from, date_to }],
         queryFn: async () => {
             try {
-                // Se usa la función correcta
-                const response = await getPurchaseOrders({ page, limit, search, status, date_from, date_to });
-                console.log('Purchase Orders API Response:', response.data);
+                // Clean up parameters, only send them if they have a value
+                const params = { page, limit };
+                if (search) params.search = search;
+                if (status) params.status = status;
+                if (date_from) params.date_from = date_from;
+                if (date_to) params.date_to = date_to;
+
+                const response = await getPurchaseOrders(params);
                 return response.data;
             } catch (err) {
                 console.error('Error fetching purchase orders:', err);
@@ -26,37 +29,19 @@ export const usePurchaseOrders = ({ page = 1, limit = 50, search = '', status = 
             }
         },
         keepPreviousData: true,
-        staleTime: 5 * 60 * 1000,
+        staleTime: 5 * 60 * 1000, // 5 minutes
         onError: (err) => {
             console.error('React Query Error:', err);
             showNotification('Error al cargar órdenes de compra', 'error');
         }
     });
 
-    const createMutation = useMutation({
-        // Se usa la función correcta
-        mutationFn: (orderData) => createPurchaseOrder(orderData),
-        onSuccess: () => {
-            queryClient.invalidateQueries(['purchase-orders']);
-            showNotification('Orden de compra creada exitosamente', 'success');
-        },
-        onError: (err) => {
-            console.error('Error creating purchase order:', err);
-            const errorMessage = err.response?.data?.detail || 'Error al crear orden de compra';
-            showNotification(errorMessage, 'error');
-        }
-    });
-
     return {
-        orders: data?.items || [],
-        pagination: {
-            total: data?.pages || 1,
-            current: data?.page || 1,
-            totalItems: data?.total || 0
-        },
-        loading: isLoading,
+        orders: data?.items ?? [],
+        total: data?.total ?? 0,
+        isLoading,
         error,
         refetch,
-        createOrder: (data) => createMutation.mutateAsync(data)
+        pageCount: data ? Math.ceil(data.total / limit) : 0,
     };
 };

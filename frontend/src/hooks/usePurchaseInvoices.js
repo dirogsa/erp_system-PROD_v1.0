@@ -1,75 +1,46 @@
-import { useState, useEffect, useCallback } from 'react';
-// Se importan las funciones correctas
-import { getPurchaseInvoices, createPurchaseInvoice, recordPurchasePayment } from '../services/api';
-import { useNotification } from './useNotification';
+import { useQuery } from '@tanstack/react-query';
+import { getPurchaseInvoices } from '../services/api';
+import { useNotification } from './useNotification'; // Corrected import path
+import { useEffect } from 'react';
 
-export const usePurchaseInvoices = () => {
-    const [invoices, setInvoices] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const { showNotification } = useNotification();
+export const usePurchaseInvoices = (page = 1, limit = 10, search = '', status = '', date_from = '', date_to = '') => {
+    const { showNotification } = useNotification(); // Corrected hook name
 
-    const fetchInvoices = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            // Se usa la función correcta
-            const response = await getPurchaseInvoices();
-            setInvoices(response.data.items || []);
-        } catch (err) {
-            setError(err);
-            showNotification('Error al cargar facturas de compra', 'error');
-            console.error('Error fetching purchase invoices:', err);
-        } finally {
-            setLoading(false);
-        }
-    }, [showNotification]);
+    const {
+        data,
+        isLoading,
+        error,
+        refetch
+    } = useQuery({
+        queryKey: ['purchase-invoices', { page, limit, search, status, date_from, date_to }],
+        queryFn: async () => {
+            // Clean up parameters, only send them if they have a value
+            const params = { page, limit };
+            if (search) params.search = search;
+            if (status) params.status = status;
+            if (date_from) params.date_from = date_from;
+            if (date_to) params.date_to = date_to;
 
-    const createInvoice = useCallback(async (invoiceData) => {
-        setLoading(true);
-        try {
-            // Se usa la función correcta
-            const response = await createPurchaseInvoice(invoiceData);
-            await fetchInvoices();
-            showNotification('Factura de compra registrada exitosamente', 'success');
+            const response = await getPurchaseInvoices(params);
             return response.data;
-        } catch (err) {
-            const errorMessage = err.response?.data?.detail || 'Error al registrar factura';
-            showNotification(errorMessage, 'error');
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [fetchInvoices, showNotification]);
-
-    const registerPayment = useCallback(async (invoiceId, paymentData) => {
-        setLoading(true);
-        try {
-            // Se usa la función correcta
-            await recordPurchasePayment(invoiceId, paymentData);
-            await fetchInvoices();
-            showNotification('Pago registrado exitosamente', 'success');
-        } catch (err) {
-            const errorMessage = err.response?.data?.detail || 'Error al registrar pago';
-            showNotification(errorMessage, 'error');
-            throw err;
-        } finally {
-            setLoading(false);
-        }
-    }, [fetchInvoices, showNotification]);
-
-    // NOTA: La función `registerReception` no existe en el api.js actual.
+        },
+        keepPreviousData: true,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
 
     useEffect(() => {
-        fetchInvoices();
-    }, [fetchInvoices]);
+        if (error) {
+            console.error("Error fetching purchase invoices:", error);
+            showNotification('Error al cargar facturas de compra', 'error');
+        }
+    }, [error, showNotification]);
 
     return {
-        invoices,
-        loading,
+        invoices: data?.items ?? [],
+        total: data?.total ?? 0,
+        isLoading,
         error,
-        fetchInvoices,
-        createInvoice,
-        registerPayment,
+        refetch,
+        pageCount: data ? Math.ceil(data.total / limit) : 0,
     };
 };

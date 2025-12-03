@@ -4,7 +4,11 @@ This document outlines the file and folder structure of the ERP system, divided 
 
 ## Backend
 
-The backend is a Python application built with the FastAPI framework. It handles the business logic, data processing, and communication with the database.
+The backend is a Python application built with the FastAPI framework. It handles the business logic, data processing, and communication with the database. The structure follows a **Domain-Driven Design (DDD)** approach, grouping code by business modules rather than by technical function.
+
+- **Modularity:** Code related to a specific business area (e.g., Sales, Purchasing, Inventory) is co-located in its own `routes`, `services`, and `models` files.
+- **Scalability:** This separation makes it easier to manage and scale each module independently.
+- **Maintainability:** Finding and updating code is more intuitive as it's organized by business logic.
 
 ```
 backend/
@@ -34,6 +38,7 @@ backend/
 │   │   └── sales_schemas.py
 │   └── services/
 │       ├── __init__.py
+│       ├── document_number_service.py
 │       ├── inventory_service.py
 │       ├── purchasing_service.py
 │       └── sales_service.py
@@ -47,6 +52,10 @@ backend/
 
 The frontend is a single-page application (SPA) built with React and Vite. It provides the user interface for interacting with the system.
 
+- **Component-Based:** The UI is built from reusable and isolated components, organized into `common` (generic) and `features` (module-specific).
+- **State Management:** Uses custom hooks (`use...`) to encapsulate data fetching and state logic for each business module, promoting reusability and separation of concerns.
+- **Clear Separation:** A dedicated `/services/api.js` utility handles all communication with the backend, keeping data fetching logic separate from the UI components.
+
 ```
 frontend/
 ├── public/
@@ -59,6 +68,7 @@ frontend/
 │   │   │   ├── Alert.jsx
 │   │   │   ├── Badge.jsx
 │   │   │   ├── Button.jsx
+│   │   │   ├── ImageWithFallback.jsx
 │   │   │   ├── Input.jsx
 │   │   │   ├── Loading.jsx
 │   │   │   ├── MeasurementInput.jsx
@@ -73,81 +83,37 @@ frontend/
 │   │   │   ├── customers/
 │   │   │   │   └── CustomerForm.jsx
 │   │   │   ├── inventory/
-│   │   │   │   ├── InventoryAdjustmentModal.jsx
-│   │   │   │   ├── LossesSection.jsx
-│   │   │   │   ├── ProductForm.jsx
-│   │   │   │   ├── ProductsTable.jsx
-│   │   │   │   └── TransfersSection.jsx
+│   │   │   │   └── ...
 │   │   │   ├── purchasing/
-│   │   │   │   ├── InvoiceModal.jsx
-│   │   │   │   ├── PaymentModal.jsx
-│   │   │   │   ├── PurchaseInvoiceDetailModal.jsx
-│   │   │   │   ├── PurchaseInvoicesTable.jsx
-│   │   │   │   ├── PurchaseOrdersTable.jsx
-│   │   │   │   └── ReceptionModal.jsx
+│   │   │   │   └── ...
 │   │   │   ├── sales/
-│   │   │   │   ├── DispatchModal.jsx
-│   │   │   │   ├── InvoiceDetailModal.jsx
-│   │   │   │   ├── InvoiceModal.jsx
-│   │   │   │   ├── InvoicesTable.jsx
-│   │   │   │   ├── OrderDetailModal.jsx
-│   │   │   │   ├── OrdersTable.jsx
-│   │   │   │   ├── PaymentModal.jsx
-│   │   │   │   └── ProductHistoryModal.jsx
+│   │   │   │   └── ...
 │   │   │   └── suppliers/
 │   │   │       └── SupplierForm.jsx
 │   │   ├── forms/
-│   │   │   ├── InvoiceForm/
-│   │   │   │   ├── PaymentSection.jsx
-│   │   │   │   └── index.jsx
-│   │   │   ├── OrderForm/
-│   │   │   │   ├── CustomerSelector.jsx
-│   │   │   │   ├── OrderSummary.jsx
-│   │   │   │   ├── ProductItemsSection.jsx
-│   │   │   │   └── index.jsx
-│   │   │   └── PaymentForm/
-│   │   │       └── index.jsx
-│   │   ├── ActionButtons.jsx
+│   │   │   └── ...
 │   │   ├── Layout.jsx
 │   │   └── Modal.jsx
 │   ├── context/
-│   │   ├── NotificationContainer.jsx
 │   │   └── NotificationContext.jsx
 │   ├── hooks/
 │   │   ├── useCustomers.js
-│   │   ├── useLosses.js
-│   │   ├── useNotification.js
 │   │   ├── useProducts.js
-│   │   ├── usePurchaseInvoices.js
-│   │   ├── usePurchaseOrders.js
-│   │   ├── useSalesInvoices.js
-│   │   ├── useSalesOrders.js
 │   │   ├── useSuppliers.js
-│   │   └── useTransfers.js
+│   │   └── ...
 │   ├── pages/
 │   │   ├── Customers.jsx
-│   │   ├── ImportExport.jsx
 │   │   ├── Inventory.jsx
-│   │   ├── Losses.jsx
 │   │   ├── Purchasing.jsx
 │   │   ├── Sales.jsx
 │   │   ├── Suppliers.jsx
-│   │   └── Transfers.jsx
+│   │   └── ...
 │   ├── services/
 │   │   └── api.js
 │   ├── utils/
-│   │   ├── constants.js
-│   │   ├── docIdentifiers.js
-│   │   ├── exportPdf.js
-│   │   ├── formatters.js
-│   │   └── validators.js
-│   ├── App.css
+│   │   └── ...
 │   ├── App.jsx
-│   ├── index.css
 │   └── main.jsx
-├── eslint.config.js
 ├── index.html
-├── package.json
-├── package-lock.json
 └── vite.config.js
 ```

@@ -33,6 +33,48 @@ export const MOVEMENT_TYPE = {
     ADJUSTMENT: 'ADJUSTMENT'
 };
 
+// --- Credit & Debit Notes ---
+
+export const CREDIT_NOTE_REASONS = [
+    { value: 'RETURN', label: 'Devolución de Mercadería' },
+    { value: 'CANCELLATION', label: 'Anulación de Operación' },
+    { value: 'DISCOUNT', label: 'Descuento o Bonificación' },
+    { value: 'PRICE_ADJUSTMENT', label: 'Ajuste de Precio' },
+    { value: 'OTHER', label: 'Otros Ajustes' }
+];
+
+export const DEBIT_NOTE_REASONS = [
+    { value: 'RETURN', label: 'Devolución al Proveedor' },
+    { value: 'FREIGHT_CHARGES', label: 'Cargos por Flete' },
+    { value: 'INTEREST_CHARGES', label: 'Cargos por Intereses' },
+    { value: 'OTHER', label: 'Otros Ajustes' }
+];
+
+export const NOTE_STATUS = {
+    DRAFT: 'Borrador',
+    APPLIED: 'Aplicada',
+    VOID: 'Anulada',
+};
+
+export const getCreditNoteReasonText = (reason) => {
+    return CREDIT_NOTE_REASONS.find(r => r.value === reason)?.label || reason;
+};
+
+export const getDebitNoteReasonText = (reason) => {
+    return DEBIT_NOTE_REASONS.find(r => r.value === reason)?.label || reason;
+};
+
+export const getCreditNoteStatusVariant = (status) => {
+    switch (status) {
+        case 'APPLIED': return 'success';
+        case 'VOID': return 'error';
+        case 'DRAFT':
+        default: return 'warning';
+    }
+};
+
+export const getDebitNoteStatusVariant = getCreditNoteStatusVariant; // They share the same statuses and variants
+
 // Tipos de notificación
 export const NOTIFICATION_TYPE = {
     SUCCESS: 'success',
@@ -82,8 +124,6 @@ export const COMPANY_INFO = {
     RUC: '20606277432',
     ADDRESS: 'CAL.JOSE ORENGO NRO. 850 San Luis, Lima, Perú',
     LOGO: '/assets/logo.svg',
-    // Optional bank account info (kept here for convenience).
-    // If present, the user can insert it into the printable notes with the button.
     BANK_ACCOUNT: {
         holder: 'DIROGSA S.R.L.',
         bank: 'BCP',

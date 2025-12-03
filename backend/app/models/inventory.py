@@ -72,7 +72,7 @@ class StockMovement(Document):
     target_warehouse_id: Optional[str] = None
     unit_cost: Optional[float] = None
     reference_document: str
-    date: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=datetime.now)
     notes: Optional[str] = None
     responsible: Optional[str] = None
 

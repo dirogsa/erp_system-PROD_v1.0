@@ -1,110 +1,128 @@
-from fastapi import APIRouter, HTTPException, Depends
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List, Optional
+from beanie import PydanticObjectId
+from datetime import date
 
-# Importa el nuevo servicio de numeración
-from app.services.document_number_service import get_next_document_number
-
-# Modelos de Purchasing (añadimos PaymentStatus)
-from app.models.purchasing import Order, Invoice, Supplier, OrderDetail, OrderStatus, PaymentStatus
-# Modelos de Inventory para mover stock
-from app.models.inventory import Product, StockMovement, MovementType
+from app.services import purchasing_service
+from app.schemas.purchasing_schemas import (
+    DebitNoteCreate, DebitNoteResponse, PurchaseOrder, PurchaseInvoice, Supplier
+)
+from app.schemas.common import PaginatedResponse
+from app.exceptions.business_exceptions import NotFoundException, ValidationException
 
 router = APIRouter(prefix="/api/v1/purchasing", tags=["Purchasing"])
 
 # --- Rutas para Proveedores (Suppliers) ---
-@router.post("/suppliers/", response_model=Supplier)
-async def create_supplier(supplier: Supplier):
-    await supplier.insert()
-    return supplier
 
-@router.get("/suppliers/", response_model=List[Supplier])
-async def list_suppliers():
-    return await Supplier.find_all().to_list()
-
-# --- ¡NUEVA RUTA AÑADIDA! ---
-@router.put("/suppliers/{supplier_id}", response_model=Supplier)
-async def update_supplier(supplier_id: str, supplier: Supplier):
+@router.get("/suppliers/", response_model=PaginatedResponse[Supplier])
+async def list_suppliers(
+    page: int = 1,
+    limit: int = 10,
+    search: Optional[str] = Query(None, description="Search by supplier name"),
+):
     """
-    Actualiza los datos de un proveedor existente.
+    Retrieves a paginated list of suppliers.
     """
-    update_data = supplier.dict(exclude_unset=True, exclude={"id"})
-
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No update data provided")
-
-    db_supplier = await Supplier.get(supplier_id)
-    if not db_supplier:
-        raise HTTPException(status_code=404, detail="Supplier not found")
-    
-    await db_supplier.update({"$set": update_data})
-    
-    updated_doc = await Supplier.get(supplier_id)
-    return updated_doc
-
-# --- Rutas para Órdenes de Compra (Orders) ---
-@router.post("/orders/", response_model=Order)
-async def create_purchase_order(order: Order):
-    order.order_number = await get_next_document_number("OC", Order)
-    await order.insert()
-    return order
-
-@router.get("/orders/", response_model=List[Order])
-async def list_purchase_orders():
-    return await Order.find_all().to_list()
-
-@router.post("/orders/{order_id}/receive", response_model=Order)
-async def receive_purchase_order(order_id: str):
-    order = await Order.get(order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    if order.status == OrderStatus.RECEIVED:
-        raise HTTPException(status_code=400, detail="Order has already been received")
-
-    for item in order.items:
-        product = await Product.find_one({"sku": item.product_sku})
-        if not product:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"Product with SKU {item.product_sku} not found. Cannot receive order."
-            )
-        
-        movement = StockMovement(
-            product_sku=item.product_sku,
-            quantity=item.quantity,
-            movement_type=MovementType.IN,
-            reference_document=f"PO-{order.order_number}"
+    try:
+        skip = (page - 1) * limit
+        paginated_result = await purchasing_service.get_suppliers(
+            skip=skip, limit=limit, search=search
         )
-        
-        product.stock_current += movement.quantity
-        
-        await movement.insert()
-        await product.save()
+        return paginated_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
 
-    order.status = OrderStatus.RECEIVED
-    await order.save()
+# --- Rutas para Órdenes de Compra (Purchase Orders) ---
 
-    return order
+@router.get("/orders/", response_model=PaginatedResponse[PurchaseOrder])
+async def list_purchase_orders(
+    status: Optional[str] = Query(None),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
+    search: Optional[str] = Query(None, description="Search by order number or supplier name"),
+    page: int = 1,
+    limit: int = 10,
+):
+    """
+    Retrieves a paginated list of purchase orders.
+    """
+    try:
+        skip = (page - 1) * limit
+        paginated_result = await purchasing_service.get_orders(
+            skip=skip,
+            limit=limit,
+            status=status,
+            date_from=date_from,
+            date_to=date_to,
+            search=search,
+        )
+        return paginated_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
 
-# --- Rutas para Facturas de Compra (Invoices) ---
-@router.post("/invoices/", response_model=Invoice)
-async def create_purchase_invoice(invoice: Invoice):
-    invoice.invoice_number = await get_next_document_number("FC", Invoice)
-    await invoice.insert()
-    return invoice
 
-@router.get("/invoices/", response_model=List[Invoice])
-async def list_purchase_invoices():
-    return await Invoice.find_all().to_list()
+# --- Rutas para Facturas de Compra (Purchase Invoices) ---
 
-@router.post("/invoices/{invoice_id}/pay", response_model=Invoice)
-async def record_purchase_payment(invoice_id: str):
-    invoice = await Invoice.get(invoice_id)
-    if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
+@router.get("/invoices/", response_model=PaginatedResponse[PurchaseInvoice])
+async def list_purchase_invoices(
+    status: Optional[str] = Query(None),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
+    search: Optional[str] = Query(None, description="Search by invoice number or supplier name"),
+    page: int = 1,
+    limit: int = 10,
+):
+    """
+    Retrieves a paginated list of purchase invoices.
+    """
+    try:
+        skip = (page - 1) * limit
+        paginated_result = await purchasing_service.get_invoices(
+            skip=skip,
+            limit=limit,
+            status=status,
+            date_from=date_from,
+            date_to=date_to,
+            search=search,
+        )
+        return paginated_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
 
-    if invoice.payment_status == PaymentStatus.PAID:
-        raise HTTPException(status_code=400, detail="Invoice is already paid")
 
-    invoice.payment_status = PaymentStatus.PAID
-    await invoice.save()
-    return invoice
+# --- Rutas para Notas de Débito (Debit Notes) ---
+
+@router.post("/invoices/{invoice_id}/debit-notes/", response_model=DebitNoteResponse)
+async def create_debit_note_for_invoice(
+    invoice_id: PydanticObjectId,
+    debit_note_in: DebitNoteCreate
+):
+    """
+    Creates a debit note for a specific purchase invoice.
+    """
+    try:
+        debit_note = await purchasing_service.create_debit_note(invoice_id, debit_note_in)
+        response = DebitNoteResponse.parse_obj(debit_note.dict())
+        return response
+    except NotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+
+@router.get("/debit-notes/", response_model=PaginatedResponse[DebitNoteResponse])
+async def list_debit_notes(
+    page: int = 1,
+    limit: int = 10,
+    search: Optional[str] = Query(None, description="Search by debit note number")
+):
+    """
+    Retrieves a paginated list of debit notes.
+    """
+    try:
+        skip = (page - 1) * limit
+        paginated_result = await purchasing_service.get_debit_notes(skip=skip, limit=limit, search=search)
+        return paginated_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")

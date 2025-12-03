@@ -1,0 +1,44 @@
+/* Layout.css */
+
+/* Estilo para los títulos de los grupos del menú */
+.nav-group-title {
+    background-color: #f0f2f5; /* Un fondo gris claro, sutil */
+    border: none;
+    border-radius: 6px;
+    width: 100%;
+    text-align: left;
+    padding: 12px 15px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+/* Efecto al pasar el ratón por encima */
+.nav-group-title:hover {
+    background-color: #e4e6e9;
+}
+
+/* Estilo cuando el grupo está activo (la página actual pertenece a este grupo) */
+.nav-group-title.active {
+    background-color: #007bff; /* Color primario del dashboard */
+    color: white;
+}
+
+/* Contenedor del submenú */
+.nav-submenu {
+    padding-left: 15px;
+    border-left: 2px solid #e0e0e0;
+    margin-left: 15px;
+    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ajuste para los enlaces dentro del submenú */
+.nav-submenu .nav-link {
+    padding: 8px 10px;
+    font-size: 0.95rem;
+}

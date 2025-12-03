@@ -2,32 +2,19 @@ import React, { useState } from 'react';
 import { useStockMovements } from '../../../hooks/useStockMovements';
 import Table from '../../common/Table';
 import Pagination from '../../common/Table/Pagination';
-import Button from '../../common/Button';
 import { format } from 'date-fns';
-import StockMovementModal from './StockMovementModal';
 
-const StockMovementsSection = () => {
+const StockMovementsSection = ({ productSku, showPagination = true }) => { 
     const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(10);
-    const [showModal, setShowModal] = useState(false);
+    const [limit, setLimit] = useState(5);
 
-    const { movements, total, isLoading, error, refetch } = useStockMovements(page, limit);
+    const { movements, total, isLoading, error } = useStockMovements(page, limit, { product_sku: productSku });
 
     const columns = [
         {
             label: 'Fecha',
-            key: 'date',
-            render: (item) => format(new Date(item.date), 'dd/MM/yyyy HH:mm')
-        },
-        {
-            label: 'Producto (SKU)',
-            key: 'product_sku',
-            render: (item) => (
-                <div>
-                    <p style={{ margin: 0, color: 'white', fontWeight: '500' }}>{item.product_name || 'Nombre no disponible'}</p>
-                    <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.875rem' }}>{item.product_sku}</p>
-                </div>
-            )
+            key: 'created_at',
+            render: (item) => item.created_at ? format(new Date(item.created_at), 'dd/MM/yyyy HH:mm') : 'Fecha inválida'
         },
         {
             label: 'Tipo',
@@ -45,42 +32,38 @@ const StockMovementsSection = () => {
         {
             label: 'Documento Ref.',
             key: 'reference_document',
-            render: (item) => item.reference_document || 'No Aplica'
+            render: (item) => item.reference_document || 'N/A'
+        },
+        {
+            label: 'Notas',
+            key: 'notes',
+            render: (item) => item.notes || 'N/A'
         },
     ];
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <Button onClick={() => setShowModal(true)}>+ Registrar Movimiento Manual</Button>
-            </div>
-
             {error && <p style={{ color: 'red' }}>Error al cargar los movimientos: {error.message}</p>}
-
-            <h3 style={{ color: 'white', marginBottom: '1rem' }}>Movimientos Recientes del Inventario</h3>
 
             <Table
                 columns={columns}
                 data={movements}
                 loading={isLoading}
-                emptyMessage="No hay movimientos de stock registrados."
+                emptyMessage="No hay movimientos de stock para este producto."
             />
 
-            <Pagination
-                current={page}
-                total={total}
-                pageSize={limit}
-                onChange={setPage}
-                onPageSizeChange={(newSize) => {
-                    setLimit(newSize);
-                    setPage(1);
-                }}
-            />
-
-            {showModal && <StockMovementModal onClose={() => {
-                setShowModal(false);
-                refetch();
-            }} />}
+            {showPagination && (
+                <Pagination
+                    current={page}
+                    total={total}
+                    pageSize={limit}
+                    onChange={setPage}
+                    onPageSizeChange={(newSize) => {
+                        setLimit(newSize);
+                        setPage(1);
+                    }}
+                />
+            )}
         </div>
     );
 };

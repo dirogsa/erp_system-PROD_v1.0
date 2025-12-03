@@ -86,11 +86,56 @@ class SalesInvoice(Document):
     payments: List[SalesPayment] = []
     dispatch_status: str = "NOT_DISPATCHED"
     guide_id: Optional[str] = None
+    credit_note_ids: List[str] = []
+    credit_applied: float = 0.0
 
-    @field_validator('total_amount', 'amount_paid')
+    @field_validator('total_amount', 'amount_paid', 'credit_applied')
     @classmethod
     def round_amounts(cls, v):
         return round(v, 3) if v is not None else v
 
     class Settings:
         name = "sales_invoices"
+
+# --- New Models for Credit Notes ---
+
+class CreditNoteReason(str, Enum):
+    RETURN = "RETURN"
+    PRICE_CORRECTION = "PRICE_CORRECTION"
+    DISCOUNT = "DISCOUNT"
+    OTHER = "OTHER"
+
+class CreditNoteStatus(str, Enum):
+    DRAFT = "DRAFT"
+    APPLIED = "APPLIED"
+    CANCELLED = "CANCELLED"
+
+class CreditNoteItem(BaseModel):
+    product_sku: str
+    quantity: int
+    unit_price: float
+    reason: Optional[str] = None
+
+    @field_validator('unit_price')
+    @classmethod
+    def round_price(cls, v):
+        return round(v, 3) if v is not None else v
+
+class CreditNote(Document):
+    credit_note_number: Indexed(str, unique=True)
+    sales_invoice_id: str
+    customer_id: str
+    date: datetime = Field(default_factory=datetime.now)
+    reason: CreditNoteReason
+    status: CreditNoteStatus = CreditNoteStatus.DRAFT
+    items: List[CreditNoteItem]
+    total_amount: float
+    notes: Optional[str] = None
+
+    @field_validator('total_amount')
+    @classmethod
+    def round_total(cls, v):
+        return round(v, 3)
+
+    class Settings:
+        name = "sales_credit_notes"

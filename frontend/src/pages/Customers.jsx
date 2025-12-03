@@ -106,7 +106,7 @@ const Customers = () => {
 
             <Table
                 columns={columns}
-                data={customers}
+                data={customers?.items || []}
                 loading={loading}
                 emptyMessage="No hay clientes registrados"
             />

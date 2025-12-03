@@ -101,7 +101,7 @@ const Suppliers = () => {
 
             <Table
                 columns={columns}
-                data={suppliers}
+                data={suppliers?.items || []} // <-- Corrected: Pass the array of items
                 loading={loading}
                 emptyMessage="No hay proveedores registrados"
             />

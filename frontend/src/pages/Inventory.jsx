@@ -4,7 +4,7 @@ import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import ProductsTable from '../components/features/inventory/ProductsTable';
 import ProductForm from '../components/features/inventory/ProductForm';
-import ProductDetailModal from '../components/features/inventory/ProductDetailModal'; // Import the new modal
+import ProductDetailModal from '../components/features/inventory/ProductDetailModal';
 import TransfersSection from '../components/features/inventory/TransfersSection';
 import StockMovementsSection from '../components/features/inventory/StockMovementsSection';
 import Pagination from '../components/common/Table/Pagination';
@@ -15,7 +15,7 @@ import { useNotification } from '../hooks/useNotification';
 const Inventory = () => {
     const [activeTab, setActiveTab] = useState('products');
     const [showProductModal, setShowProductModal] = useState(false);
-    const [showDetailModal, setShowDetailModal] = useState(false); // State for the detail modal
+    const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
     
     const [page, setPage] = useState(1);
@@ -25,6 +25,9 @@ const Inventory = () => {
     const { showNotification } = useNotification();
 
     const { products, total, isLoading, error } = useProducts(page, limit, search);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(total / limit);
 
     const createMutation = useMutation({
         mutationFn: (newProductData) => createProduct(newProductData),
@@ -76,7 +79,6 @@ const Inventory = () => {
         }
     };
     
-    // Open the new detail modal
     const handleViewDetails = (product) => {
         setSelectedProduct(product);
         setShowDetailModal(true);
@@ -168,7 +170,7 @@ const Inventory = () => {
                     <ProductsTable
                         products={products}
                         loading={isLoading}
-                        onView={handleViewDetails} // Changed to open the detail modal
+                        onView={handleViewDetails}
                         onEdit={(product) => {
                             setSelectedProduct(product);
                             setShowProductModal(true);
@@ -178,7 +180,7 @@ const Inventory = () => {
 
                     <Pagination
                         current={page}
-                        total={total}
+                        total={totalPages} // Corrected: Pass totalPages instead of total
                         onChange={setPage}
                         pageSize={limit}
                         onPageSizeChange={(newSize) => {

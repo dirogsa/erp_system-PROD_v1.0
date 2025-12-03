@@ -2,23 +2,27 @@ import React from 'react';
 import Button from '../Button';
 
 const Pagination = ({ current, total, onChange, pageSize, onPageSizeChange }) => {
-    if (total <= 1) return null;
+    const totalPages = Math.ceil(total / pageSize);
+
+    if (totalPages <= 1) {
+        return null;
+    }
 
     const getPageNumbers = () => {
         const pages = [];
         const maxVisible = 5;
 
-        if (total <= maxVisible) {
-            for (let i = 1; i <= total; i++) pages.push(i);
+        if (totalPages <= maxVisible) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
         } else {
             if (current <= 3) {
                 for (let i = 1; i <= 4; i++) pages.push(i);
                 pages.push('...');
-                pages.push(total);
-            } else if (current >= total - 2) {
+                pages.push(totalPages);
+            } else if (current >= totalPages - 2) {
                 pages.push(1);
                 pages.push('...');
-                for (let i = total - 3; i <= total; i++) pages.push(i);
+                for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
             } else {
                 pages.push(1);
                 pages.push('...');
@@ -26,7 +30,7 @@ const Pagination = ({ current, total, onChange, pageSize, onPageSizeChange }) =>
                 pages.push(current);
                 pages.push(current + 1);
                 pages.push('...');
-                pages.push(total);
+                pages.push(totalPages);
             }
         }
         return pages;
@@ -43,7 +47,7 @@ const Pagination = ({ current, total, onChange, pageSize, onPageSizeChange }) =>
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>
-                    Página {current} de {total}
+                    Página {current} de {totalPages}
                 </span>
                 {onPageSizeChange && (
                     <select
@@ -57,6 +61,7 @@ const Pagination = ({ current, total, onChange, pageSize, onPageSizeChange }) =>
                             padding: '0.25rem 0.5rem'
                         }}
                     >
+                        <option value={5}>5 / pág</option>
                         <option value={10}>10 / pág</option>
                         <option value={20}>20 / pág</option>
                         <option value={50}>50 / pág</option>
@@ -97,7 +102,7 @@ const Pagination = ({ current, total, onChange, pageSize, onPageSizeChange }) =>
                 <Button
                     variant="secondary"
                     onClick={() => onChange(current + 1)}
-                    disabled={current === total}
+                    disabled={current === totalPages}
                     style={{ padding: '0.25rem 0.75rem' }}
                 >
                     Siguiente
