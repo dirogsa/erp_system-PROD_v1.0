@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// CORRECCIÓN: Se importa getStockMovements en lugar de la función inexistente
-import { getStockMovements } from '../../../services/api';
+import { getStockMovementsByProduct } from '../../../services/api';
 import Table from '../../common/Table';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
 
@@ -15,8 +14,7 @@ const ProductHistoryModal = ({ productId, onClose }) => {
       const fetchHistory = async () => {
         try {
           setLoading(true);
-          // Usamos la función correcta que ya existe
-          const response = await getStockMovements(productId);
+          const response = await getStockMovementsByProduct(productId);
           setHistory(response.data);
           setError('');
         } catch (err) {

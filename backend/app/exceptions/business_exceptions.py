@@ -1,43 +1,23 @@
 class BusinessException(Exception):
     """Base class for business logic exceptions"""
-    def __init__(self, message: str, code: str, details: dict = None):
-        self.message = message
-        self.code = code
-        self.details = details or {}
-        super().__init__(self.message)
+    pass
 
 class NotFoundException(BusinessException):
-    def __init__(self, entity: str, entity_id: str):
-        super().__init__(
-            f"{entity} with id {entity_id} not found",
-            "NOT_FOUND",
-            {"entity": entity, "id": entity_id}
-        )
+    """Raised when an entity is not found in the database."""
+    pass
 
 class ValidationException(BusinessException):
-    def __init__(self, message: str, details: dict = None):
-        super().__init__(
-            message,
-            "VALIDATION_ERROR",
-            details
-        )
+    """Raised when input data fails validation."""
+    pass
 
 class InsufficientStockException(BusinessException):
+    """Raised when there is not enough stock to fulfill an order."""
     def __init__(self, product_sku: str, available: int, required: int):
-        super().__init__(
-            f"Insufficient stock for product {product_sku}",
-            "INSUFFICIENT_STOCK",
-            {
-                "product_sku": product_sku,
-                "available": available,
-                "required": required
-            }
-        )
+        self.product_sku = product_sku
+        self.available = available
+        self.required = required
+        super().__init__(f"Insufficient stock for SKU {product_sku}. Required: {required}, Available: {available}")
 
-class DuplicateEntityException(BusinessException):
-    def __init__(self, entity: str, field: str, value: str):
-        super().__init__(
-            f"{entity} with {field} '{value}' already exists",
-            "DUPLICATE_ENTITY",
-            {"entity": entity, "field": field, "value": value}
-        )
+class DuplicateException(BusinessException):
+    """Raised when trying to create an entity that already exists (e.g., duplicate RUC)."""
+    pass

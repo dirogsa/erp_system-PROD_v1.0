@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 // --- Configuración dinámica de la URL de la API ---
@@ -14,8 +15,6 @@ const api = axios.create({
 });
 
 // --- Interceptores ---
-// CORRECCIÓN: El interceptor de respuesta debe devolver `response.data`
-// para que React Query reciba directamente el JSON de la API.
 api.interceptors.response.use(
   response => response.data, 
   error => {
@@ -28,11 +27,22 @@ api.interceptors.response.use(
 // --- Endpoints de la API ---
 
 // Inventory
-export const getProducts = (page, limit, search) => {
-    const params = { page, limit };
+export const getProducts = (page, limit, { search, sortBy, sortOrder } = {}) => {
+    const params = {
+        page,
+        limit,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+    };
+
+    // Solo añadir el parámetro de búsqueda si tiene un valor
     if (search) {
         params.search = search;
     }
+
+    // LOG DE DEBUGGING
+    console.log('Executing API call: GET /api/v1/inventory/products/ with params:', params);
+
     return api.get('/api/v1/inventory/products/', { params });
 };
 export const getProductById = (id) => api.get(`/api/v1/inventory/products/${id}`);
@@ -67,9 +77,17 @@ export const createSalesOrder = (order) => api.post('/api/v1/sales/orders/', ord
 export const getSalesInvoices = (params) => api.get('/api/v1/sales/invoices/', { params });
 export const createSalesInvoice = (invoice) => api.post('/api/v1/sales/invoices/', invoice);
 export const recordSalesPayment = (invoiceId) => api.post(`/api/v1/sales/invoices/${invoiceId}/pay`);
-export const getCustomers = () => api.get('/api/v1/sales/customers/');
+export const getCustomers = (page, limit, search) => {
+    const params = { page, limit };
+    if (search) {
+        params.search = search;
+    }
+    return api.get('/api/v1/sales/customers/', { params });
+};
+export const getCustomer = (id) => api.get(`/api/v1/sales/customers/${id}`);
 export const createCustomer = (customer) => api.post('/api/v1/sales/customers/', customer);
 export const updateCustomer = (id, customer) => api.put(`/api/v1/sales/customers/${id}`, customer);
+export const deleteCustomer = (id) => api.delete(`/api/v1/sales/customers/${id}`);
 
 // Credit & Debit Notes
 export const getCreditNotes = (params) => api.get('/api/v1/sales/credit-notes/', { params });

@@ -10,7 +10,7 @@ from app.schemas.purchasing_schemas import (
 from app.schemas.common import PaginatedResponse
 from app.exceptions.business_exceptions import NotFoundException, ValidationException
 
-router = APIRouter(prefix="/api/v1/purchasing", tags=["Purchasing"])
+router = APIRouter(tags=["Purchasing"])
 
 # --- Rutas para Proveedores (Suppliers) ---
 

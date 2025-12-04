@@ -11,11 +11,13 @@ const useDebitNotes = (page, limit, searchTerm) => {
         setLoading(true);
         try {
             const params = {
-                skip: (page - 1) * limit,
-                limit,
-                search: searchTerm,
+                page: page,
+                limit: limit,
             };
-            const { data } = await getDebitNotes(params);
+            if (searchTerm) {
+                params.search = searchTerm;
+            }
+            const data = await getDebitNotes(params);
             setNotes(data.items || []);
             setTotalPages(data.pages || 1);
             setError(null);

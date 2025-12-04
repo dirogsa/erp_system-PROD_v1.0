@@ -1,21 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
-// Se importan las funciones directamente
-import { getCustomers, createCustomer, updateCustomer } from '../services/api';
+import { useState, useCallback } from 'react';
+import { 
+    getCustomers as apiGetCustomers, 
+    createCustomer as apiCreateCustomer, 
+    updateCustomer as apiUpdateCustomer, 
+    deleteCustomer as apiDeleteCustomer 
+} from '../services/api';
 import { useNotification } from './useNotification';
 
 export const useCustomers = () => {
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1, limit: 10 });
     const { showNotification } = useNotification();
 
-    const fetchCustomers = useCallback(async () => {
+    const fetchCustomers = useCallback(async (page = 1, limit = 10, search = '') => {
         setLoading(true);
         setError(null);
         try {
-            // Se llama a la función directamente
-            const response = await getCustomers();
-            setCustomers(response.data);
+            const response = await apiGetCustomers(page, limit, search);
+            // La respuesta ya es el objeto paginado { items, total, ... }
+            setCustomers(response.items || []);
+            setPagination({
+                total: response.total,
+                page: response.page,
+                pages: response.pages,
+                limit: response.size
+            });
         } catch (err) {
             setError(err);
             showNotification('Error al cargar clientes', 'error');
@@ -28,27 +39,27 @@ export const useCustomers = () => {
     const addCustomer = useCallback(async (customerData) => {
         setLoading(true);
         try {
-            // Se llama a la función directamente
-            const response = await createCustomer(customerData);
-            await fetchCustomers();
+            const newCustomer = await apiCreateCustomer(customerData);
             showNotification('Cliente creado exitosamente', 'success');
-            return response.data;
+            // Refrescar volviendo a la primera página para ver el nuevo cliente
+            await fetchCustomers(1, pagination.limit);
+            return newCustomer;
         } catch (err) {
             const errorMessage = err.response?.data?.detail || 'Error al crear cliente';
             showNotification(errorMessage, 'error');
-            throw err;
+            throw err; // Es importante relanzar el error para el manejo en el formulario
         } finally {
             setLoading(false);
         }
-    }, [fetchCustomers, showNotification]);
+    }, [fetchCustomers, showNotification, pagination.limit]);
 
     const editCustomer = useCallback(async (id, customerData) => {
         setLoading(true);
         try {
-            // Se llama a la función directamente
-            await updateCustomer(id, customerData);
-            await fetchCustomers();
+            await apiUpdateCustomer(id, customerData);
             showNotification('Cliente actualizado exitosamente', 'success');
+            // Refrescar la página actual para ver los cambios
+            await fetchCustomers(pagination.page, pagination.limit);
         } catch (err) {
             const errorMessage = err.response?.data?.detail || 'Error al actualizar cliente';
             showNotification(errorMessage, 'error');
@@ -56,21 +67,32 @@ export const useCustomers = () => {
         } finally {
             setLoading(false);
         }
-    }, [fetchCustomers, showNotification]);
+    }, [fetchCustomers, showNotification, pagination.page, pagination.limit]);
 
-    // NOTA: No existe un `deleteCustomer` en el api.js actual.
-    // Las funciones getCustomerByRuc y getCustomerBranches tampoco existen.
+    const removeCustomer = useCallback(async (id) => {
+        setLoading(true);
+        try {
+            await apiDeleteCustomer(id);
+            showNotification('Cliente eliminado exitosamente', 'success');
+            // Refrescar para que el cliente ya no aparezca
+            await fetchCustomers(pagination.page, pagination.limit);
+        } catch (err) {
+            const errorMessage = err.response?.data?.detail || 'Error al eliminar el cliente';
+            showNotification(errorMessage, 'error');
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchCustomers, showNotification, pagination.page, pagination.limit]);
 
-    useEffect(() => {
-        fetchCustomers();
-    }, [fetchCustomers]);
 
     return {
         customers,
         loading,
         error,
+        pagination,
         fetchCustomers,
         createCustomer: addCustomer,
         updateCustomer: editCustomer,
+        deleteCustomer: removeCustomer
     };
 };

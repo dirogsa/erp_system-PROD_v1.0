@@ -8,9 +8,9 @@ from app.models.inventory import Product, Category, Warehouse, StockMovement
 from app.schemas.inventory_schemas import ProductCreate, PaginatedProducts, PaginatedStockMovements
 from app.schemas.common import PaginatedResponse
 from app.services import inventory_service
-from app.exceptions.business_exceptions import NotFoundException, DuplicateEntityException
+from app.exceptions.business_exceptions import NotFoundException, DuplicateException
 
-router = APIRouter(prefix="/api/v1/inventory", tags=["Inventory"])
+router = APIRouter(tags=["Inventory"])
 
 # --- Rutas para Productos (Products) ---
 
@@ -21,7 +21,7 @@ async def create_product_route(product_data: ProductCreate):
             Product(**product_data.dict(exclude={"stock_initial"})),
             product_data.stock_initial
         )
-    except DuplicateEntityException as e:
+    except DuplicateException as e:
         raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
@@ -31,13 +31,23 @@ async def list_products_route(
     page: int = 1,
     limit: int = 10,
     search: Optional[str] = None,
-    category: Optional[str] = None
+    category: Optional[str] = None,
+    sort_by: Optional[str] = Query("sku", alias="sort_by"), # CORREGIDO
+    sort_order: Optional[str] = Query("asc", alias="sort_order") # CORREGIDO
 ):
     """
-    Endpoint para listar productos de forma paginada, utilizando el servicio de inventario.
+    Endpoint para listar productos de forma paginada, con búsqueda y ordenación.
     """
     skip = (page - 1) * limit
-    paginated_result = await inventory_service.get_products(skip, limit, search, category)
+    # CORREGIDO: Pasar los parámetros de ordenación al servicio
+    paginated_result = await inventory_service.get_products(
+        skip=skip, 
+        limit=limit, 
+        search=search, 
+        category=category, 
+        sort_by=sort_by, 
+        sort_order=sort_order
+    )
     return paginated_result
 
 @router.get("/products/{sku}", response_model=Product)
@@ -50,7 +60,6 @@ async def get_product_route(sku: str):
 @router.put("/products/{sku}", response_model=Product)
 async def update_product_route(sku: str, product_data: Product):
     try:
-        # El servicio espera el objeto de datos de Pydantic, no un dict
         return await inventory_service.update_product(sku, product_data)
     except NotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -66,6 +75,11 @@ async def delete_product_route(sku: str):
         return None
     except NotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+# --- Rutas para Almacenes (Warehouses) ---
+@router.get("/warehouses/", response_model=List[Warehouse])
+async def list_warehouses():
+    return await Warehouse.find_all().to_list()
 
 # --- Rutas para Movimientos de Stock (StockMovements) ---
 

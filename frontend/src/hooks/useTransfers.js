@@ -14,7 +14,7 @@ export const useTransfers = () => {
         try {
             // Se llama a la función directamente
             const response = await getWarehouses();
-            setWarehouses(response.data);
+            setWarehouses(response);
         } catch (err) {
             console.error('Error fetching warehouses:', err);
         }
@@ -28,7 +28,7 @@ export const useTransfers = () => {
 
             const newTransfer = {
                 date: new Date().toLocaleString(),
-                guide: response.data.guide_number,
+                guide: response.guide_number,
                 warehouse: transferData.target_warehouse_id, // Should map to name
                 product: transferData.items[0].sku, // Should map to name
                 quantity: transferData.items[0].quantity,
@@ -36,8 +36,8 @@ export const useTransfers = () => {
             };
 
             setTransfers(prev => [newTransfer, ...prev]);
-            showNotification(`Guía Generada: ${response.data.guide_number}`, 'success');
-            return response.data;
+            showNotification(`Guía Generada: ${response.guide_number}`, 'success');
+            return response;
         } catch (err) {
             const errorMessage = err.response?.data?.detail || 'Error al registrar transferencia';
             showNotification(errorMessage, 'error');

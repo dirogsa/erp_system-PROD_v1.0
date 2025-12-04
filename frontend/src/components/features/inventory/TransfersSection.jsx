@@ -78,7 +78,7 @@ const TransfersSection = () => {
                     <p style={{ color: '#94a3b8', margin: 0 }}>Envíos (Sesión)</p>
                 </div>
                 <div style={{ textAlign: 'center', padding: '1.5rem', backgroundColor: '#1e293b', borderRadius: '0.5rem' }}>
-                    <h3 style={{ fontSize: '2rem', color: '#94a3b8', margin: 0 }}>{warehouses.filter(w => !w.is_main).length}</h3>
+                    <h3 style={{ fontSize: '2rem', color: '#94a3b8', margin: 0 }}>{(warehouses || []).filter(w => !w.is_main).length}</h3>
                     <p style={{ color: '#94a3b8', margin: 0 }}>Almacenes Destino</p>
                 </div>
             </div>
@@ -106,7 +106,7 @@ const TransfersSection = () => {
                                 label="Almacén Destino"
                                 value={formData.target_warehouse_id}
                                 onChange={(e) => setFormData({ ...formData, target_warehouse_id: e.target.value })}
-                                options={warehouses.filter(w => !w.is_main).map(w => ({ value: w.code, label: `${w.name} (${w.address})` }))}
+                                options={(warehouses || []).filter(w => !w.is_main).map(w => ({ value: w.code, label: `${w.name} (${w.address})` }))}
                                 required
                             />
 

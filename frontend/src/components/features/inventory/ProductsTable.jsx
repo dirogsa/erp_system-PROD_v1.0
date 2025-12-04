@@ -4,14 +4,18 @@ import Button from '../../common/Button';
 import ImageWithFallback from '../../common/ImageWithFallback';
 import { formatCurrency } from '../../../utils/formatters';
 
-const ProductsTable = ({
-    products = [],
-    loading = false,
-    onView,
-    onEdit,
-    onDelete,
-    paginationComponent // <--- Nueva prop
-}) => {
+const ProductsTable = (props) => {
+    console.log('[ProductsTable] Props received:', props);
+    
+    const {
+        products = [],
+        loading = false,
+        onView,
+        onEdit,
+        onDelete,
+        paginationComponent
+    } = props;
+
     const columns = [
         {
             label: 'Imagen',

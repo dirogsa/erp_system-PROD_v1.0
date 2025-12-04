@@ -21,8 +21,7 @@ export const usePurchaseInvoices = (page = 1, limit = 10, search = '', status = 
             if (date_from) params.date_from = date_from;
             if (date_to) params.date_to = date_to;
 
-            const response = await getPurchaseInvoices(params);
-            return response.data;
+            return await getPurchaseInvoices(params);
         },
         keepPreviousData: true,
         staleTime: 5 * 60 * 1000, // 5 minutes

@@ -12,15 +12,23 @@ const CustomerForm = ({
     const { showNotification } = useNotification();
     const isEditMode = !!initialData;
 
-    const [formData, setFormData] = useState({
-        name: '',
-        ruc: '',
-        email: '',
-        phone: '',
-        address: '',
-        branches: [],
-        ...initialData
+    // CORRECCIÓN DEFINITIVA: El ID del cliente se recibe como `_id` desde la API.
+    // La función ahora busca `data?.id` o `data?._id` para asegurar que siempre se capture.
+    const getInitialFormData = (data) => ({
+        id: data?.id || data?._id || null, 
+        name: data?.name || '',
+        ruc: data?.ruc || '',
+        email: data?.email || '',
+        phone: data?.phone || '',
+        address: data?.address || '',
+        branches: data?.branches || [],
     });
+
+    const [formData, setFormData] = useState(getInitialFormData(initialData));
+
+    useEffect(() => {
+        setFormData(getInitialFormData(initialData));
+    }, [initialData]);
 
     const [newBranch, setNewBranch] = useState({
         branch_name: '',
@@ -38,43 +46,22 @@ const CustomerForm = ({
         }
 
         const branch = { ...newBranch };
-        // Si es la primera sucursal, marcarla como principal
         if (formData.branches.length === 0) {
             branch.is_main = true;
         }
 
-        setFormData({
-            ...formData,
-            branches: [...formData.branches, branch]
-        });
-
-        setNewBranch({
-            branch_name: '',
-            address: '',
-            contact_person: '',
-            phone: '',
-            is_main: false,
-            is_active: true
-        });
+        setFormData(prev => ({ ...prev, branches: [...prev.branches, branch] }));
+        setNewBranch({ branch_name: '', address: '', contact_person: '', phone: '', is_main: false, is_active: true });
     };
 
     const handleRemoveBranch = (index) => {
         const updatedBranches = formData.branches.filter((_, i) => i !== index);
-        setFormData({
-            ...formData,
-            branches: updatedBranches
-        });
+        setFormData(prev => ({ ...prev, branches: updatedBranches }));
     };
 
     const handleToggleMainBranch = (index) => {
-        const updatedBranches = formData.branches.map((b, i) => ({
-            ...b,
-            is_main: i === index
-        }));
-        setFormData({
-            ...formData,
-            branches: updatedBranches
-        });
+        const updatedBranches = formData.branches.map((b, i) => ({ ...b, is_main: i === index }));
+        setFormData(prev => ({ ...prev, branches: updatedBranches }));
     };
 
     const handleSubmit = (e) => {
@@ -124,11 +111,8 @@ const CustomerForm = ({
                     placeholder="Av. Principal 123"
                 />
 
-                {/* Sección de Sucursales */}
                 <div style={{ marginTop: '1rem', padding: '1rem', background: '#1e293b', borderRadius: '8px' }}>
                     <h4 style={{ marginBottom: '1rem', color: '#e2e8f0' }}>Sucursales</h4>
-
-                    {/* Lista de sucursales */}
                     {formData.branches.length > 0 && (
                         <div style={{ marginBottom: '1rem' }}>
                             {formData.branches.map((branch, index) => (
@@ -140,7 +124,7 @@ const CustomerForm = ({
                                     border: branch.is_main ? '2px solid #3b82f6' : '1px solid #334155'
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                                        <div style={{ flex: 1 }}>
+                                        <div>
                                             <strong style={{ color: 'white' }}>{branch.branch_name}</strong>
                                             {branch.is_main && <span style={{ color: '#3b82f6', marginLeft: '0.5rem' }}>(Principal)</span>}
                                             <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: '0.25rem 0' }}>{branch.address}</p>
@@ -148,29 +132,15 @@ const CustomerForm = ({
                                         </div>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                                             {!branch.is_main && (
-                                                <Button
-                                                    size="small"
-                                                    variant="secondary"
-                                                    onClick={() => handleToggleMainBranch(index)}
-                                                >
-                                                    Principal
-                                                </Button>
+                                                <Button size="small" variant="secondary" onClick={() => handleToggleMainBranch(index)}>Principal</Button>
                                             )}
-                                            <Button
-                                                size="small"
-                                                variant="danger"
-                                                onClick={() => handleRemoveBranch(index)}
-                                            >
-                                                Eliminar
-                                            </Button>
+                                            <Button size="small" variant="danger" onClick={() => handleRemoveBranch(index)}>Eliminar</Button>
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
-
-                    {/* Formulario para agregar sucursal */}
                     <div style={{ display: 'grid', gap: '0.75rem', padding: '1rem', background: '#0f172a', borderRadius: '6px' }}>
                         <h5 style={{ margin: 0, color: '#e2e8f0' }}>Agregar Sucursal</h5>
                         <Input
@@ -195,38 +165,13 @@ const CustomerForm = ({
                                 onChange={e => setNewBranch({ ...newBranch, phone: e.target.value })}
                             />
                         </div>
-                        <Button
-                            onClick={handleAddBranch}
-                            disabled={!newBranch.branch_name || !newBranch.address}
-                            variant="secondary"
-                            size="small"
-                        >
-                            + Agregar Sucursal
-                        </Button>
+                        <Button onClick={handleAddBranch} disabled={!newBranch.branch_name || !newBranch.address} variant="secondary" size="small">+ Agregar Sucursal</Button>
                     </div>
                 </div>
             </div>
-
-            <div style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '1rem',
-                marginTop: '2rem'
-            }}>
-                <Button
-                    variant="secondary"
-                    onClick={onCancel}
-                    disabled={loading}
-                >
-                    Cancelar
-                </Button>
-                <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={loading}
-                >
-                    {loading ? 'Guardando...' : (isEditMode ? 'Actualizar Cliente' : 'Guardar Cliente')}
-                </Button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
+                <Button variant="secondary" onClick={onCancel} disabled={loading}>Cancelar</Button>
+                <Button type="submit" variant="primary" disabled={loading}>{loading ? 'Guardando...' : (isEditMode ? 'Actualizar Cliente' : 'Guardar Cliente')}</Button>
             </div>
         </form>
     );

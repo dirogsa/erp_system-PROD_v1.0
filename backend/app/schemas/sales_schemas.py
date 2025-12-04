@@ -1,21 +1,14 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
-from app.models.sales import PaymentStatus, CreditNoteReason, CreditNoteStatus, OrderStatus, SalesOrderDetail
 from beanie import PydanticObjectId
+from app.models.sales import CreditNoteReason, OrderStatus, PaymentStatus, CustomerBranch, CreditNoteItem as CreditNoteItemModel
 
-# --- Schemas for Customers ---
+# ===============================================
+# ============= CUSTOMER SCHEMAS ================
+# ===============================================
 
-class CustomerBranch(BaseModel):
-    branch_name: str
-    address: str
-    contact_person: Optional[str] = None
-    phone: Optional[str] = None
-    is_main: bool = False
-    is_active: bool = True
-
-class Customer(BaseModel):
-    id: PydanticObjectId = Field(..., alias='_id')
+class CustomerBase(BaseModel):
     name: str
     ruc: str
     address: Optional[str] = None
@@ -23,18 +16,36 @@ class Customer(BaseModel):
     email: Optional[str] = None
     branches: List[CustomerBranch] = []
 
+class CustomerCreate(CustomerBase):
+    pass
+
+class CustomerUpdate(BaseModel):
+    name: Optional[str] = None
+    ruc: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    branches: Optional[List[CustomerBranch]] = None
+
+class CustomerRead(CustomerBase):
+    id: PydanticObjectId = Field(..., alias="_id")
+    created_at: datetime
+
     class Config:
         from_attributes = True
         populate_by_name = True
-        json_encoders = {
-            PydanticObjectId: str
-        }
+        json_encoders = {PydanticObjectId: str}
 
-# --- Schemas for Sales Orders ---
+# ===============================================
+# =========== SALES ORDER SCHEMAS ===============
+# ===============================================
 
-class SalesOrderOut(BaseModel):
-    id: PydanticObjectId = Field(..., alias='_id')
-    order_number: str
+class SalesOrderDetail(BaseModel):
+    product_sku: str
+    quantity: int
+    unit_price: float
+
+class SalesOrderBase(BaseModel):
     customer_id: str
     date: datetime
     items: List[SalesOrderDetail]
@@ -43,65 +54,67 @@ class SalesOrderOut(BaseModel):
     delivery_branch_name: Optional[str] = None
     delivery_address: str
 
+class SalesOrderRead(SalesOrderBase):
+    id: PydanticObjectId = Field(..., alias="_id")
+    order_number: str
+
     class Config:
         from_attributes = True
         populate_by_name = True
-        json_encoders = {
-            PydanticObjectId: str,
-            datetime: lambda dt: dt.isoformat()
-        }
+        json_encoders = {PydanticObjectId: str}
 
-# --- Schemas for Sales Invoices ---
+# ===============================================
+# ========== SALES INVOICE SCHEMAS ==============
+# ===============================================
 
-class SalesInvoiceOut(BaseModel):
-    id: PydanticObjectId = Field(..., alias='_id')
-    invoice_number: str
+class SalesInvoiceBase(BaseModel):
     order_id: str
     customer_id: str
     invoice_date: datetime
     items: List[SalesOrderDetail]
     total_amount: float
+    delivery_branch_name: Optional[str] = None
+    delivery_address: str
     payment_status: PaymentStatus
-    amount_paid: float
+
+class SalesInvoiceRead(SalesInvoiceBase):
+    id: PydanticObjectId = Field(..., alias="_id")
+    invoice_number: str
 
     class Config:
         from_attributes = True
         populate_by_name = True
-        json_encoders = {
-            PydanticObjectId: str,
-            datetime: lambda dt: dt.isoformat()
-        }
+        json_encoders = {PydanticObjectId: str}
 
-# --- Schemas for Credit Notes ---
+# ===============================================
+# ============ CREDIT NOTE SCHEMAS ==============
+# ===============================================
 
-class CreditNoteItemSchema(BaseModel):
+class CreditNoteItem(BaseModel):
     product_sku: str
     quantity: int
     unit_price: float
     reason: Optional[str] = None
 
 class CreditNoteCreate(BaseModel):
+    sales_invoice_id: str
     reason: CreditNoteReason
-    items: List[CreditNoteItemSchema]
+    items: List[CreditNoteItem]
     notes: Optional[str] = None
-    date: datetime = Field(default_factory=datetime.now)
 
-class CreditNoteResponse(BaseModel):
+class CreditNoteRead(BaseModel):
     id: PydanticObjectId = Field(..., alias="_id")
     credit_note_number: str
     sales_invoice_id: str
     customer_id: str
     date: datetime
     reason: CreditNoteReason
-    status: CreditNoteStatus
-    items: List[CreditNoteItemSchema]
+    status: str
+    items: List[CreditNoteItemModel]
     total_amount: float
     notes: Optional[str] = None
 
     class Config:
         from_attributes = True
         populate_by_name = True
-        json_encoders = {
-            PydanticObjectId: str,
-            datetime: lambda dt: dt.strftime('%Y-%m-%d %H:%M:%S')
-        }
+        json_encoders = {PydanticObjectId: str}

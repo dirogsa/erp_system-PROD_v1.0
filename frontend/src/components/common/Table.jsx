@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const Table = ({
@@ -59,7 +60,6 @@ const Table = ({
                                 color: '#e2e8f0'
                             }}
                         >
-                            {/* FINAL CONTRACT: Render function always receives the full row object */}
                             {column.render ? column.render(row) : (row ? row[column.key] : null)}
                         </td>
                     ))}

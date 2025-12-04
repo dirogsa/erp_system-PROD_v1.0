@@ -35,9 +35,9 @@ app.add_middleware(
 )
 
 # Incluye las rutas
-app.include_router(inventory.router)
-app.include_router(purchasing.router)
-app.include_router(sales.router)
+app.include_router(inventory.router, prefix="/api/v1/inventory", tags=["inventory"])
+app.include_router(purchasing.router, prefix="/api/v1/purchasing", tags=["purchasing"])
+app.include_router(sales.router, prefix="/api/v1/sales", tags=["sales"])
 
 @app.on_event("startup")
 async def on_startup():

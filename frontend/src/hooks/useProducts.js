@@ -1,27 +1,31 @@
 import { useQuery } from '@tanstack/react-query';
 import { getProducts } from '../services/api';
 
-/**
- * Hook para obtener productos paginados desde la API.
- * @param {number} page - El número de página a solicitar.
- * @param {number} limit - El número de items por página.
- * @param {string} search - El término de búsqueda.
- * @returns El resultado de la consulta de React Query.
- */
-export const useProducts = (page, limit, search) => {
+export const useProducts = (filters = {}) => {
+    // Log para ver los filtros crudos que recibe el hook
+    console.log('[useProducts] Hook initiated. Raw filters received:', filters);
+
+    const { page = 1, limit = 10, search, sortBy = 'sku', sortOrder = 'asc' } = filters;
+
+    // Defensa contra filtro de búsqueda inválido
+    if (typeof search === 'function') {
+        console.warn(
+            '[useProducts] Warning: Invalid search filter received (was a function). ' +
+            'This is likely a bug in the calling component. Defaulting to an empty string.'
+        );
+        search = ''; // Corregir a cadena vacía
+    }
+
+    const queryFilters = { search, sortBy, sortOrder };
+
     return useQuery({
-        // La clave de consulta identifica unívocamente esta solicitud de datos
-        queryKey: ['products', page, limit, search],
-        
-        // La función que se ejecutará para obtener los datos
+        queryKey: ['products', page, limit, queryFilters],
         queryFn: async () => {
-            const data = await getProducts(page, limit, search);
-            console.log('Products API Response:', data); // Log para depuración
+            console.log('[useProducts] Executing queryFn. Filters being sent to API:', { page, limit, ...queryFilters });
+            const data = await getProducts(page, limit, queryFilters);
+            console.log('[useProducts] API Response Received. Items:', data.items);
             return data;
         },
-        
-        // Mantiene los datos anteriores visibles mientras se cargan los nuevos,
-        // lo que evita parpadeos en la interfaz al paginar.
         keepPreviousData: true,
     });
 };

@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from '../components/common/Button';
 import Table from '../components/common/Table';
 import CustomerForm from '../components/features/customers/CustomerForm';
 import { useCustomers } from '../hooks/useCustomers';
+import Pagination from '../components/common/Table/Pagination';
 
 const Customers = () => {
     const {
         customers,
         loading,
+        pagination,
+        fetchCustomers,
         createCustomer,
         updateCustomer,
         deleteCustomer
@@ -17,18 +20,34 @@ const Customers = () => {
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [isViewMode, setIsViewMode] = useState(false);
 
+    useEffect(() => {
+        fetchCustomers();
+    }, [fetchCustomers]);
+
     const handleCreate = async (data) => {
         try {
             await createCustomer(data);
             setIsModalOpen(false);
-        } catch (error) { }
+        } catch (error) { 
+            // Error is handled in the hook
+        }
     };
 
-    const handleUpdate = async (data) => {
+    const handleUpdate = async (formData) => {
+        if (!formData.id) {
+            console.error("Update failed: customer ID is missing.");
+            return;
+        }
         try {
-            await updateCustomer(data._id, data);
+            await updateCustomer(formData.id, formData);
             setIsModalOpen(false);
-        } catch (error) { }
+        } catch (error) {
+            // Error is handled in the hook
+        }
+    };
+
+    const handlePageChange = (newPage) => {
+        fetchCustomers(newPage, pagination.limit);
     };
 
     const columns = [
@@ -39,13 +58,13 @@ const Customers = () => {
             label: 'Sucursales',
             key: 'branches',
             align: 'center',
-            render: (val) => val?.length || 0
+            render: (customer) => customer?.branches?.length || 0
         },
         {
             label: 'Acciones',
             key: 'actions',
             align: 'center',
-            render: (_, customer) => (
+            render: (customer) => (
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                     <Button
                         size="small"
@@ -77,7 +96,7 @@ const Customers = () => {
                         onClick={(e) => {
                             e.stopPropagation();
                             if (window.confirm('¿Estás seguro de eliminar este cliente?')) {
-                                deleteCustomer(customer._id);
+                                deleteCustomer(customer.id);
                             }
                         }}
                     >
@@ -106,9 +125,15 @@ const Customers = () => {
 
             <Table
                 columns={columns}
-                data={customers?.items || []}
+                data={customers}
                 loading={loading}
                 emptyMessage="No hay clientes registrados"
+            />
+
+            <Pagination 
+                currentPage={pagination.page}
+                totalPages={pagination.pages}
+                onPageChange={handlePageChange}
             />
 
             {isModalOpen && (

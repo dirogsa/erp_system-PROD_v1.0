@@ -21,8 +21,7 @@ export const usePurchaseOrders = (page = 1, limit = 10, search = '', status = ''
                 if (date_from) params.date_from = date_from;
                 if (date_to) params.date_to = date_to;
 
-                const response = await getPurchaseOrders(params);
-                return response.data;
+                return await getPurchaseOrders(params);
             } catch (err) {
                 console.error('Error fetching purchase orders:', err);
                 throw err;

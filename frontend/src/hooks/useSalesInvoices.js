@@ -1,88 +1,83 @@
-import { useState, useEffect, useCallback } from 'react';
-// Se importan las funciones correctas
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSalesInvoices, createSalesInvoice, recordSalesPayment } from '../services/api';
-import { useNotification } from './useNotification'; // Corrected import path
+import { useNotification } from './useNotification';
 
 export const useSalesInvoices = ({ page = 1, limit = 10, search = '', status = '', date_from = '', date_to = '' } = {}) => {
-    const [invoices, setInvoices] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const { showNotification } = useNotification(); // Corrected hook name
+    const queryClient = useQueryClient();
+    const { showNotification } = useNotification();
+    
+    const queryParams = { page, limit, search, status, date_from, date_to };
 
-    const fetchInvoices = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            // Clean up parameters, only send them if they have a value
-            const params = { page, limit };
-            if (search) params.search = search;
-            if (status) params.status = status;
-            if (date_from) params.date_from = date_from;
-            if (date_to) params.date_to = date_to;
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['sales-invoices', queryParams],
+        queryFn: async () => {
+            try {
+                // Construct params, sending only those with values
+                const params = { page, limit };
+                if (search) params.search = search;
+                if (status) params.status = status;
+                if (date_from) params.date_from = date_from;
+                if (date_to) params.date_to = date_to;
+                
+                // FIX: Interceptor in api.js returns data directly
+                const response = await getSalesInvoices(params);
 
-            // Se usa la función correcta con los parámetros limpios
-            const response = await getSalesInvoices(params);
-            setInvoices(response.data.items || []);
-        } catch (err) {
-            setError(err);
-            showNotification('Error al cargar facturas de venta', 'error');
-            console.error('Error fetching sales invoices:', err);
-        } finally {
-            setLoading(false);
-        }
-    }, [showNotification, page, limit, search, status, date_from, date_to]);
-
-    const addInvoice = useCallback(async (invoiceData) => {
-        setLoading(true);
-        try {
-            // Se usa la función correcta
-            const response = await createSalesInvoice(invoiceData);
-            await fetchInvoices();
-            showNotification('Factura registrada exitosamente', 'success');
-            return response.data;
-        } catch (err) {
-            let errorMessage = 'Error al registrar factura';
-            if (err.response?.data?.detail) {
-                const detail = err.response.data.detail;
-                if (Array.isArray(detail)) {
-                    errorMessage = detail.map(e => `${e.loc.join('.')}: ${e.msg}`).join(', ');
-                } else if (typeof detail === 'string') {
-                    errorMessage = detail;
+                console.log('Sales Invoices API Response (from hook):', response);
+                
+                // Return a default structure if the response is falsy
+                if (!response) {
+                    return { items: [], total: 0, page: 1, pages: 1 };
                 }
+                
+                return response;
+            } catch (err) {
+                console.error('Error fetching sales invoices inside hook:', err);
+                throw err;
             }
-            showNotification(errorMessage, 'error');
-            throw err;
-        } finally {
-            setLoading(false);
+        },
+        keepPreviousData: true,
+        staleTime: 5 * 60 * 1000,
+        onError: (err) => {
+            showNotification('Error al cargar las facturas de venta', 'error');
         }
-    }, [fetchInvoices, showNotification]);
+    });
 
-    const registerPayment = useCallback(async (invoiceId, paymentData) => {
-        setLoading(true);
-        try {
-            // Se usa la función correcta
-            await recordSalesPayment(invoiceId, paymentData);
-            await fetchInvoices();
+    const createInvoiceMutation = useMutation({
+        mutationFn: (invoiceData) => createSalesInvoice(invoiceData),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['sales-invoices']);
+            showNotification('Factura registrada exitosamente', 'success');
+        },
+        onError: (err) => {
+            const errorMessage = err.response?.data?.detail || 'Error al registrar la factura';
+            showNotification(errorMessage, 'error');
+        }
+    });
+
+    const recordPaymentMutation = useMutation({
+        mutationFn: ({ invoiceId, paymentData }) => recordSalesPayment(invoiceId, paymentData),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['sales-invoices']);
             showNotification('Pago registrado exitosamente', 'success');
-        } catch (err) {
-            const errorMessage = err.response?.data?.detail || 'Error al registrar pago';
+        },
+        onError: (err) => {
+            const errorMessage = err.response?.data?.detail || 'Error al registrar el pago';
             showNotification(errorMessage, 'error');
-            throw err;
-        } finally {
-            setLoading(false);
         }
-    }, [fetchInvoices, showNotification]);
-
-    useEffect(() => {
-        fetchInvoices();
-    }, [fetchInvoices]);
+    });
 
     return {
-        invoices,
-        loading,
+        invoices: data?.items || [],
+        pagination: {
+            totalPages: data?.pages || 1,
+            currentPage: data?.page || 1,
+            totalItems: data?.total || 0,
+            pageSize: data?.size || limit
+        },
+        loading: isLoading,
         error,
-        fetchInvoices,
-        createInvoice: addInvoice,
-        registerPayment,
+        refetch,
+        createInvoice: (data) => createInvoiceMutation.mutateAsync(data),
+        registerPayment: (invoiceId, paymentData) => recordPaymentMutation.mutateAsync({ invoiceId, paymentData }),
     };
 };

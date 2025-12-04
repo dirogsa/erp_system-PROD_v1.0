@@ -1,88 +1,89 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import List, Optional
 from beanie import PydanticObjectId
-
-from app.services import sales_service
-from app.schemas.sales_schemas import (
-    CreditNoteCreate, CreditNoteResponse, SalesOrderOut, SalesInvoiceOut, Customer
+from app.services.sales_service import (
+    get_sales_orders, 
+    get_sales_invoices,
+    create_customer,
+    get_customers,
+    get_customer_by_id,
+    update_customer,
+    delete_customer,
+    get_credit_notes
 )
+from app.schemas.sales_schemas import SalesOrderRead, SalesInvoiceRead, CustomerCreate, CustomerUpdate, CustomerRead, CreditNoteRead
 from app.schemas.common import PaginatedResponse
-from app.exceptions.business_exceptions import NotFoundException, ValidationException
 
-router = APIRouter(prefix="/api/v1/sales", tags=["Sales"])
+router = APIRouter()
 
-# --- Rutas para Clientes (Customers) ---
+# ================================================
+# =============== CUSTOMERS ======================
+# ================================================
 
-@router.get("/customers", response_model=PaginatedResponse[Customer])
+@router.post("/customers/", response_model=CustomerRead, status_code=201)
+async def add_customer(customer_data: CustomerCreate):
+    return await create_customer(customer_data)
+
+@router.get("/customers/", response_model=PaginatedResponse[CustomerRead])
 async def list_customers(
-    page: int = 1,
-    limit: int = 10,
-    search: Optional[str] = Query(None, description="Search by customer name"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    search: Optional[str] = Query(None)
 ):
-    """
-    Retrieves a paginated list of customers.
-    """
-    try:
-        skip = (page - 1) * limit
-        paginated_result = await sales_service.get_customers(
-            skip=skip, limit=limit, search=search
-        )
-        return paginated_result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+    return await get_customers(skip=skip, limit=limit, search=search)
 
-# --- Rutas para Órdenes de Venta (Sales Orders) ---
+@router.get("/customers/{customer_id}", response_model=CustomerRead)
+async def retrieve_customer(customer_id: str):
+    return await get_customer_by_id(customer_id)
 
-@router.get("/orders/", response_model=PaginatedResponse[SalesOrderOut])
+@router.put("/customers/{customer_id}", response_model=CustomerRead)
+async def edit_customer(customer_id: str, customer_data: CustomerUpdate):
+    return await update_customer(customer_id, customer_data)
+
+@router.delete("/customers/{customer_id}", status_code=204)
+async def remove_customer(customer_id: str):
+    if not await delete_customer(customer_id):
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return {}
+
+# ================================================
+# ================ SALES ORDERS ==================
+# ================================================
+
+@router.get("/orders/", response_model=PaginatedResponse[SalesOrderRead])
 async def list_sales_orders(
-    page: int = 1,
-    limit: int = 10,
-    search: Optional[str] = None,
-    status: Optional[str] = None,
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    search: Optional[str] = Query(None)
 ):
-    skip = (page - 1) * limit
-    paginated_result = await sales_service.get_orders(
-        skip=skip, limit=limit, search=search, status=status, date_from=date_from, date_to=date_to
-    )
-    return paginated_result
+    """List sales orders with pagination and search."""
+    orders_response = await get_sales_orders(skip=skip, limit=limit, search=search)
+    return orders_response
 
-# --- Rutas para Facturas de Venta (Sales Invoices) ---
+# ================================================
+# ================ SALES INVOICES ================
+# ================================================
 
-@router.get("/invoices/", response_model=PaginatedResponse[SalesInvoiceOut])
+@router.get("/invoices/", response_model=PaginatedResponse[SalesInvoiceRead])
 async def list_sales_invoices(
-    page: int = 1,
-    limit: int = 10,
-    search: Optional[str] = None,
-    payment_status: Optional[str] = None,
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    search: Optional[str] = Query(None)
 ):
-    skip = (page - 1) * limit
-    paginated_result = await sales_service.get_invoices(
-        skip=skip, limit=limit, search=search, payment_status=payment_status, date_from=date_from, date_to=date_to
-    )
-    return paginated_result
+    """List sales invoices with pagination and search."""
+    invoices_response = await get_sales_invoices(skip=skip, limit=limit, search=search)
+    return invoices_response
 
-# --- Rutas para Notas de Crédito (Credit Notes) ---
+# ================================================
+# ================= CREDIT NOTES =================
+# ================================================
 
-@router.post("/invoices/{invoice_id}/credit-notes/", response_model=CreditNoteResponse)
-async def create_credit_note_for_invoice(
-    invoice_id: PydanticObjectId, 
-    credit_note_in: CreditNoteCreate
-):
-    # ... (logic as before)
-    pass
-
-@router.get("/credit-notes/", response_model=PaginatedResponse[CreditNoteResponse])
+@router.get("/credit-notes/", response_model=PaginatedResponse[CreditNoteRead])
 async def list_credit_notes(
-    page: int = 1,
-    limit: int = 50,
-    search: Optional[str] = Query(None, description="Search by credit note number")
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    search: Optional[str] = Query(None)
 ):
-    skip = (page - 1) * limit
-    paginated_result = await sales_service.get_credit_notes(
-        skip=skip, limit=limit, search=search
-    )
-    return paginated_result
+    """List credit notes with pagination and search."""
+    credit_notes_response = await get_credit_notes(skip=skip, limit=limit, search=search)
+    return credit_notes_response
